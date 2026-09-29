@@ -5,8 +5,8 @@ This module imports nothing from Home Assistant.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, replace
+from datetime import datetime, time
 from typing import Any
 
 REG_AMBIENT_TEMP = 0
@@ -324,3 +324,158 @@ def encode_clock(now: datetime) -> list[tuple[int, int]]:
         (REG_CLOCK_MONTH, to_bcd(now.month)),
         (REG_CLOCK_YEAR, to_bcd(now.year % 100)),
     ]
+
+
+WEEKDAYS: tuple[str, ...] = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+SLOT_COUNT = 6
+NAME_MAX_LENGTH = 15
+_PROGRAM_LENGTH = 11
+_QUARTER = 15
+
+
+class ScheduleValidationError(ValueError):
+    """A schedule program breaks a rule of the vendor UI."""
+
+    def __init__(self, key: str) -> None:
+        """Remember which rule was broken."""
+        super().__init__(key)
+        self.key = key
+
+
+def _decode_time(enabled: int, hour: int, quarter: int) -> time | None:
+    """Decode one start or stop time."""
+    if not 0 <= hour <= 23 or not 0 <= quarter <= 3:
+        raise InvalidPayloadError(f"malformed time: {hour}h, quarter {quarter}")
+    return time(hour, quarter * _QUARTER) if enabled == 1 else None
+
+
+def _encode_time(moment: time | None) -> int:
+    """Pack one start or stop time as enabled, hour and quarter."""
+    if moment is None:
+        return 0
+    return 1 << 7 | moment.hour << 2 | moment.minute // _QUARTER
+
+
+@dataclass(frozen=True, slots=True)
+class ScheduleProgram:
+    """One of the six programs stored by the module."""
+
+    name: str
+    enabled: bool
+    start: time | None
+    end: time | None
+    temperature: int
+    power: int
+    weekdays: frozenset[str]
+
+    @classmethod
+    def from_raw(cls, raw: Any) -> ScheduleProgram | None:
+        """Decode one row of a schedule read; None is a free slot."""
+        if not isinstance(raw, list) or len(raw) != _PROGRAM_LENGTH:
+            raise InvalidPayloadError(f"malformed program: {raw!r}")
+        *numbers, name = raw
+        if not isinstance(name, str) or not all(_is_int(item) for item in numbers):
+            raise InvalidPayloadError(f"malformed program: {raw!r}")
+        (
+            enabled,
+            start_enabled,
+            start_hour,
+            start_quarter,
+            stop_enabled,
+            stop_hour,
+            stop_quarter,
+            temperature,
+            power,
+            days,
+        ) = numbers
+        # Same test as the vendor UI; a free slot may hold anything else.
+        if enabled > 1 or power == 0 or not name:
+            return None
+        return cls(
+            name=name,
+            enabled=enabled == 1,
+            start=_decode_time(start_enabled, start_hour, start_quarter),
+            end=_decode_time(stop_enabled, stop_hour, stop_quarter),
+            temperature=temperature,
+            power=power,
+            weekdays=frozenset(
+                day for bit, day in enumerate(WEEKDAYS) if days >> bit & 1
+            ),
+        )
+
+    def validate(self) -> None:
+        """Apply the rules the vendor UI applies before saving."""
+        if not self.name.strip() or len(self.name) > NAME_MAX_LENGTH:
+            raise ScheduleValidationError("name_length")
+        if any(not " " <= char <= "~" for char in self.name):
+            raise ScheduleValidationError("name_characters")
+        for moment in (self.start, self.end):
+            if moment is not None and (
+                moment.minute % _QUARTER or moment.second or moment.microsecond
+            ):
+                raise ScheduleValidationError("time_step")
+        if self.start is not None and self.end is not None and self.end <= self.start:
+            raise ScheduleValidationError("end_before_start")
+        if self.enabled and self.start is None and self.end is None:
+            raise ScheduleValidationError("no_time")
+        if not self.weekdays or not self.weekdays <= set(WEEKDAYS):
+            raise ScheduleValidationError("no_weekday")
+        if not 5 <= self.temperature <= MANUAL_SETPOINT:
+            raise ScheduleValidationError("temperature_range")
+        if not 1 <= self.power <= 5:
+            raise ScheduleValidationError("power_range")
+
+    def to_fields(self, slot: int) -> dict[str, int | str]:
+        """Return the form fields of this program for a slot, 1 to 6."""
+        prefix = f"p0{slot}"
+        days = sum(1 << bit for bit, day in enumerate(WEEKDAYS) if day in self.weekdays)
+        return {
+            f"{prefix}1": int(self.enabled),
+            f"{prefix}2": _encode_time(self.start),
+            f"{prefix}3": _encode_time(self.end),
+            f"{prefix}4": self.temperature,
+            f"{prefix}5": self.power,
+            f"{prefix}6": days,
+            f"{prefix}7": self.name,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class Schedule:
+    """The whole schedule table and its global switch."""
+
+    enabled: bool
+    programs: tuple[ScheduleProgram | None, ...]
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> Schedule:
+        """Decode the answer to a schedule read."""
+        if not isinstance(payload, dict):
+            raise InvalidPayloadError("the schedule answer is not an object")
+        rows = payload.get("programs")
+        if not isinstance(rows, list) or len(rows) != SLOT_COUNT:
+            raise InvalidPayloadError("the schedule does not hold six programs")
+        return cls(
+            enabled=bool(payload.get("enabled")),
+            programs=tuple(ScheduleProgram.from_raw(row) for row in rows),
+        )
+
+    def to_fields(self) -> dict[str, int | str]:
+        """Return the form fields that write the whole table."""
+        fields: dict[str, int | str] = {"enabled": int(self.enabled)}
+        for slot, program in enumerate(self.programs, start=1):
+            if program is not None:
+                fields.update(program.to_fields(slot))
+        return fields
+
+    def with_enabled(self, enabled: bool) -> Schedule:
+        """Return a copy with the global switch changed."""
+        return replace(self, enabled=enabled)
+
+    def with_program(self, slot: int, program: ScheduleProgram | None) -> Schedule:
+        """Return a copy with one slot, 1 to 6, replaced or freed."""
+        if not 1 <= slot <= SLOT_COUNT:
+            raise ScheduleValidationError("slot_range")
+        programs = list(self.programs)
+        programs[slot - 1] = program
+        return replace(self, programs=tuple(programs))
