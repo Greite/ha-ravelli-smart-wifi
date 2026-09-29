@@ -1,0 +1,35 @@
+[project]
+name = "ha-ravelli-smart-wifi"
+version = "0.0.0"
+description = "Home Assistant integration for the Ravelli Smart Wi-Fi module"
+requires-python = ">=3.14.2"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "getmac==0.9.5",
+    "pytest-homeassistant-custom-component==0.13.367",
+    "ruff==0.16.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "SIM", "UP"]
+# E501: the formatter owns the line length.
+# RUF012: Home Assistant entities declare list and dict class attributes.
+ignore = ["E501", "RUF012"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components", "tests"]
