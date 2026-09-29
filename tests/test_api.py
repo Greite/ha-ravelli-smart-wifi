@@ -1,6 +1,7 @@
 """Tests for the HTTP client."""
 
 import logging
+from typing import Any
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -149,6 +150,27 @@ async def test_delete_program(
 
     assert aioclient_mock.mock_calls[-1][2] == "key=034&index=0"
     assert fake_module.programs[0][10] == ""
+
+
+@pytest.mark.parametrize(
+    ("command", "key"),
+    [
+        (lambda client: client.set_power(True), "022"),
+        (lambda client: client.set_schedule({"enabled": 1}), "032"),
+        (lambda client: client.delete_program(0), "034"),
+    ],
+    ids=["set_power", "set_schedule", "delete_program"],
+)
+async def test_refused_commands(
+    client: WinetClient, fake_module: FakeModule, command: Any, key: str
+) -> None:
+    """The module answers result false when it refuses a command."""
+    fake_module.write_result = False
+
+    with pytest.raises(WinetResponseError):
+        await command(client)
+
+    assert fake_module.count(PATH_GET, key=key) == 1
 
 
 @pytest.mark.parametrize(
