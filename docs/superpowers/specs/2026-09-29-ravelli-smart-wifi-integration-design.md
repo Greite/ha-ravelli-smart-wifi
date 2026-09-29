@@ -1,7 +1,7 @@
 # Ravelli Smart Wi-Fi integration for Home Assistant: design
 
 Date: 2026-09-29
-Status: approved in conversation, awaiting written review
+Status: approved. Amended on 2026-09-29 during planning (section 12).
 
 ## 1. Goal
 
@@ -143,8 +143,8 @@ Ducting (category 6) applies to model 7 only, as in the vendor UI.
 | 8 | `alarm` | off |
 | 9 | `alarm_memory` | off |
 
-Any other code maps to the `unknown` key, with the raw code exposed as an
-attribute.
+Any other code gives the Home Assistant `unknown` state, with the raw code
+exposed as an attribute.
 
 ### Schedule
 
@@ -160,7 +160,9 @@ Read format, one list per program:
 
 - `start_quarter` and `stop_quarter` are 0 to 3, in units of 15 minutes.
 - `days_mask` bit 0 is Monday, bit 6 is Sunday.
-- `name` is at most 15 characters. An empty name marks a free slot.
+- `name` is at most 15 characters.
+- A slot is free when `set_power` is 0, `enabled` is greater than 1 or the
+  name is empty. This is the test the vendor UI applies.
 - `set_temp` is 5 to 40, or 41 for manual. `set_power` is 1 to 5.
 
 Write format (`key=032`): the whole table is sent in one call. Fields for
@@ -184,7 +186,7 @@ Everything lives in `custom_components/ravelli_smart_wifi/`.
 | `config_flow.py` | User, DHCP, reconfigure and options flows | `api.py` |
 | `entity.py` | Base entity: device info, availability, unique id | `coordinator.py` |
 | `climate.py`, `sensor.py`, `binary_sensor.py`, `number.py`, `switch.py`, `button.py`, `calendar.py` | One platform each, entities declared with description tables | `entity.py` |
-| `services.yaml`, `diagnostics.py`, `strings.json`, `translations/`, `icons.json`, `manifest.json` | Actions, diagnostics, texts, icons, metadata | — |
+| `services.py`, `services.yaml`, `diagnostics.py`, `translations/`, `icons.json`, `manifest.json` | Actions, diagnostics, texts, icons, metadata | — |
 
 `api.py` and `models.py` import nothing from Home Assistant, so they can be
 unit-tested alone and extracted into a library later.
@@ -196,8 +198,9 @@ unit-tested alone and extracted into a library later.
   model 7, then 11. System status and the schedule are read every 10 minutes
   and after any schedule write.
 - **Write.** Writes take a lock shared with reads, so the module never
-  handles two requests at once. After a write the coordinator polls at 2, 5,
-  10, 20 and 30 seconds, because the stove changes state slowly.
+  handles two requests at once. After a write the coordinator reads the
+  state at once, then polls at 2, 5, 10, 20 and 30 seconds, because the stove
+  changes state slowly.
 - **Timeout.** 10 seconds per request.
 
 ### Device registry
@@ -215,7 +218,7 @@ default" are created disabled in the entity registry.
 | climate | Stove | status, registers 0, 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. |
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. |
 | climate | Water | registers 49, 1 | Model 11 only. Target 30 to 80 °C. |
-| sensor | Status | register 2 | Enum of the 10 keys plus `unknown`; attribute `raw_value`. |
+| sensor | Status | register 2 | Enum of the 10 keys; `unknown` state for any other code; attribute `raw_value`. |
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text, or `none`; attribute `raw_value`. |
 | sensor | Ambient temperature | register 0 | °C, measurement. |
 | sensor | Flue gas temperature | register 4 | °C, measurement. |
@@ -246,6 +249,9 @@ fails, the entry is created without a unique id and duplicates are blocked
 by matching the host.
 
 ### User step
+
+The step is a menu with two choices: search the local network, or enter the
+address manually. The search shows a progress screen while it runs.
 
 1. The flow lists the IPv4 networks of the enabled Home Assistant adapters
    and keeps those with a prefix of /22 or longer, to bound the scan.
@@ -293,6 +299,8 @@ Safety rules:
 
 - Only registers listed in the model table are written. No action writes an
   arbitrary register.
+- On and off commands read the stove state from the module first, so the
+  rules below never rely on a state that is up to 30 seconds old.
 - Turning off is refused while the stove is igniting and the module reports
   no flame (`flame == 0`), as the vendor UI does.
 - Turning on is refused while the status is `alarm` or `alarm_memory`.
@@ -314,7 +322,7 @@ Both actions target the integration's device.
 | Field | Type | Rule |
 |---|---|---|
 | `slot` | 1 to 6 | required |
-| `name` | text | required, 1 to 15 characters |
+| `name` | text | required, 1 to 15 printable ASCII characters |
 | `enabled` | bool | default true |
 | `start` | time | optional, minutes must be 0, 15, 30 or 45 |
 | `end` | time | optional, same rule |
@@ -384,6 +392,7 @@ release:
   commits. Conventional commits.
 - **Versions:** CalVer, annotated tags `vYYYY.MM` and `vYYYY.MM.N`. The
   manifest version follows the tag without the `v`.
+- **Home Assistant:** 2026.9.0 or later, the version the tests run against.
 - **CI:** hassfest, HACS validation, ruff (lint and format check) and pytest,
   on push and pull request.
 - **Privacy:** no personal data in any file or commit message: no names, no
@@ -391,3 +400,15 @@ release:
   documentation addresses such as `192.0.2.10`.
 - **Distribution:** HACS custom repository first. A request to join the HACS
   default store is a later, separate decision.
+
+## 12. Amendments made during planning
+
+| Topic | Change | Reason |
+|---|---|---|
+| Free schedule slot | Detected by `set_power` 0, `enabled` above 1 or empty name | It is the vendor UI rule; the name alone is not enough |
+| Program names | Printable ASCII only | The module's handling of other characters is unknown; to be relaxed after hardware verification |
+| `strings.json` | Not shipped; `translations/en.json` is the source | Custom integrations only load `translations/`; a copy would duplicate every text |
+| User step | Menu, then search with a progress screen | A search of a /22 network can take close to a minute |
+| Unknown status code | Home Assistant `unknown` state instead of an `unknown` enum option | `unknown` is a reserved state in Home Assistant |
+| On and off commands | Fresh read of the stove state before the safety rules | The polled state can be 30 seconds old |
+| Minimum Home Assistant version | 2026.9.0 | Only tested version |
