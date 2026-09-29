@@ -221,6 +221,9 @@
     "model_mismatch": {
       "message": "The module now reports stove model {model} instead of model {expected}. Reconfigure the integration."
     },
+    "not_winet": {
+      "message": "The device at the address of this entry is not a Ravelli Smart Wi-Fi module."
+    },
     "register_not_writable": {
       "message": "Register {register} cannot be written on this stove model."
     },

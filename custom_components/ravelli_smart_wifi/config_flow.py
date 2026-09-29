@@ -107,7 +107,9 @@ async def async_probe(hass: HomeAssistant, host: str) -> ProbeResult:
     except WinetResponseError as err:
         raise ProbeError("not_winet") from err
     code = info.get("model")
-    model = SUPPORTED_MODELS.get(code) if isinstance(code, int) else None
+    if not isinstance(code, int) or isinstance(code, bool):
+        raise ProbeError("not_winet")
+    model = SUPPORTED_MODELS.get(code)
     if model is None:
         raise ProbeError("unsupported_model", code)
     return ProbeResult(host=host, model=model, mac=await async_get_mac(hass, host))

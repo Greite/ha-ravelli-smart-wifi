@@ -18,6 +18,7 @@ EXCEPTIONS = {
     "command_refused",
     "device_not_found",
     "model_mismatch",
+    "not_winet",
     "register_not_writable",
     "schedule_end_before_start",
     "schedule_mismatch",

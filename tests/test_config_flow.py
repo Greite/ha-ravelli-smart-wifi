@@ -163,6 +163,25 @@ async def test_another_device_is_not_a_module(
     assert result["errors"] == {"base": "not_winet"}
 
 
+@pytest.mark.parametrize("model", [None, "7", True])
+async def test_answer_without_a_model_is_not_a_module(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    mock_mac: None,
+    model: Any,
+) -> None:
+    """Never "Stove model None is not supported yet"."""
+    FakeModule(model=model).install(aioclient_mock)
+    result = await start(hass, "manual")
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST}
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "not_winet"}
+
+
 async def test_unsupported_model_aborts(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, mock_mac: None
 ) -> None:

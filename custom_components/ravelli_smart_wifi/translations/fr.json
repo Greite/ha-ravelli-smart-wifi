@@ -221,6 +221,9 @@
     "model_mismatch": {
       "message": "Le module indique maintenant le modèle de poêle {model} au lieu du modèle {expected}. Reconfigurez l'intégration."
     },
+    "not_winet": {
+      "message": "L'appareil à l'adresse de cette entrée n'est pas un module Ravelli Smart Wi-Fi."
+    },
     "register_not_writable": {
       "message": "Le registre {register} ne peut pas être écrit sur ce modèle de poêle."
     },

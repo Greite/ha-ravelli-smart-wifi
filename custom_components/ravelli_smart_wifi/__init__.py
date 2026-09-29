@@ -44,7 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: RavelliConfigEntry) -> b
             translation_domain=DOMAIN, translation_key="cannot_connect"
         ) from err
     code = info.get("model")
-    model = SUPPORTED_MODELS.get(code) if isinstance(code, int) else None
+    if not isinstance(code, int) or isinstance(code, bool):
+        raise ConfigEntryError(translation_domain=DOMAIN, translation_key="not_winet")
+    model = SUPPORTED_MODELS.get(code)
     if model is None:
         raise ConfigEntryError(
             translation_domain=DOMAIN,

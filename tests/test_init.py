@@ -1,8 +1,11 @@
 """Tests for the setup of a config entry."""
 
+from typing import Any
+
 import aiohttp
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
@@ -47,3 +50,19 @@ async def test_setup_refuses_an_unsupported_model(
     assert not await hass.config_entries.async_setup(config_entry.entry_id)
 
     assert config_entry.state is ConfigEntryState.SETUP_ERROR
+
+
+@pytest.mark.parametrize("model", [None, "7", True, 7.0])
+async def test_setup_refuses_an_answer_without_a_model(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    model: Any,
+) -> None:
+    """Without an integer model code, the device is not a module."""
+    FakeModule(model=model).install(aioclient_mock)
+
+    assert not await hass.config_entries.async_setup(config_entry.entry_id)
+
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert config_entry.error_reason_translation_key == "not_winet"
