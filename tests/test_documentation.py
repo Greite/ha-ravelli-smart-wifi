@@ -51,8 +51,29 @@ def test_checklist_covers_the_open_points() -> None:
         "Flue gas temperature",
         "Extractor speed",
         "Manual mode",
-        "Schedule",
+        "Schedule, names",
+        "Schedule, write",
+        "Schedule, switch",
+        "Schedule, delete",
         "Clock",
         "DHCP hostname",
+        "Answers to commands",
+        "Diagnostics",
+        "French interface",
+        "Thermostat card",
+        "Soak",
+        "Schedule, switch with a foreign program",
     ):
-        assert point in CHECKLIST, point
+        assert f"| {point} |" in CHECKLIST, point
+
+
+def test_checklist_reads_names_before_writing() -> None:
+    """The accented name test tells whether the write test is safe to run."""
+    assert CHECKLIST.index("| Schedule, names |") < CHECKLIST.index(
+        "| Schedule, write |"
+    )
+
+
+def test_readme_explains_debug_logging() -> None:
+    """The checklist needs the raw answers of the module."""
+    assert "custom_components.ravelli_smart_wifi: debug" in README

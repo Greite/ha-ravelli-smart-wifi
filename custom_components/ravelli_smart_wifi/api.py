@@ -7,10 +7,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import json
+import logging
 from typing import Any
 from urllib.parse import urlencode
 
 import aiohttp
+
+_LOGGER = logging.getLogger(__name__)
 
 PATH_STATUS = "/ajax/get-status"
 PATH_GET = "/ajax/get-registers"
@@ -71,6 +74,14 @@ class WinetClient:
                 raw = await response.read()
         except (aiohttp.ClientError, TimeoutError) as err:
             raise WinetConnectionError(f"no answer from {path}") from err
+        # Never the host or the URL. The system status holds the address and
+        # the network name: its body is not logged.
+        _LOGGER.debug(
+            "%s answered HTTP %s: %s",
+            path,
+            status,
+            "(not logged)" if path == PATH_STATUS else raw.decode(errors="replace"),
+        )
         if status != 200:
             raise WinetResponseError(f"HTTP {status} from {path}")
         try:

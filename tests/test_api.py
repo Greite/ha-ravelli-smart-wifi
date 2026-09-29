@@ -1,5 +1,7 @@
 """Tests for the HTTP client."""
 
+import logging
+
 import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -182,6 +184,34 @@ async def test_unexpected_answers(
 
     with pytest.raises(WinetResponseError):
         await client.get_registers(2)
+
+
+async def test_answers_are_logged_without_the_address(
+    client: WinetClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Debug logging shows what the module answered, not where it lives."""
+    caplog.set_level(logging.DEBUG, logger="custom_components.ravelli_smart_wifi")
+
+    await client.set_power(True)
+
+    records = [r.getMessage() for r in caplog.records if PATH_GET in r.getMessage()]
+    assert len(records) == 1
+    assert "200" in records[0]
+    assert '{"result":true}' in records[0]
+    assert HOST not in caplog.text
+
+
+async def test_status_answer_is_not_logged(
+    client: WinetClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The system status holds the address and the network name."""
+    caplog.set_level(logging.DEBUG, logger="custom_components.ravelli_smart_wifi")
+
+    await client.get_status()
+
+    assert PATH_STATUS in caplog.text
+    assert HOST not in caplog.text
+    assert "example-network" not in caplog.text
 
 
 @pytest.mark.parametrize(

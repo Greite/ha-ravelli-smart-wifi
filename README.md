@@ -155,6 +155,23 @@ list of points checked on a real stove and their results.
 The diagnostics download of the device holds every register of the stove.
 Network name, addresses and program names are removed from it.
 
+### Debug logging
+
+To see every answer of the module in the log, add this to
+`configuration.yaml` and restart Home Assistant, or use **Enable debug
+logging** on the page of the integration:
+
+```yaml
+logger:
+  logs:
+    custom_components.ravelli_smart_wifi: debug
+```
+
+Each request then logs its path, the HTTP status and the answer of the module.
+The address of the module is never logged, and neither is the system status,
+which holds the network name. The other answers hold the name given to the
+stove and the names of the programs: remove them before you post a log.
+
 ## Development
 
 ```bash

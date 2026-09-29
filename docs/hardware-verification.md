@@ -18,6 +18,19 @@ Never write a network name, an address or a program name in this file.
     -d "key=033" http://192.0.2.10/ajax/get-registers
   ```
 
+## Raw answers
+
+Keep these outputs outside the repository too.
+
+```bash
+# System status
+curl -X POST -H "Content-Type: application/json; charset=utf-8" \
+  http://192.0.2.10/ajax/get-status
+# Register category 2
+curl -X POST -H "Content-Type: application/json; charset=utf-8" \
+  -d "key=020&category=2" http://192.0.2.10/ajax/get-registers
+```
+
 ## Checklist
 
 | Point | How to check | Expected |
@@ -27,11 +40,17 @@ Never write a network name, an address or a program name in this file.
 | Flue gas temperature | Compare the sensor with the value on the display of the stove, stove working | Same value |
 | Extractor speed | Enable the sensor. Compare its raw value with the speed on the display of the stove | A constant ratio between the two |
 | Manual mode | Choose the preset "Manual" | The display of the stove shows its manual mode. Choosing "None" restores the previous target |
-| Schedule, write | Store a program in slot 6 with the action, then open the page of the module | The program is there, with the right times, days, temperature and power. The other programs are unchanged |
 | Schedule, names | On the page of the module, create a program whose name holds an accented letter, then read the schedule with the command above | Note whether the name comes back unchanged |
+| Schedule, write | Store a program in slot 6 with the action, then open the page of the module | The program is there, with the right times, days, temperature and power. The other programs are unchanged |
 | Schedule, switch | Flip the switch "Schedule" off and on | The page of the module shows the same state. The programs are unchanged |
+| Schedule, switch with a foreign program | Keep the program with an accented name created on the page of the module, then flip the switch "Schedule" off and on | The program with the accented name is unchanged, name included |
 | Schedule, delete | Delete slot 6 with the action | Slot 6 is free. The other programs are unchanged |
 | Clock | Press "Synchronize clock" | The display of the stove shows the time of Home Assistant |
+| Answers to commands | Turn debug logging on (see the README). Turn the stove on and off, flip the switch "Schedule", delete slot 6. Read the log lines `/ajax/get-registers answered HTTP` of each command | Note the JSON answer of the module to `key=022` (on and off), `key=032` (schedule write) and `key=034` (program delete) |
+| Diagnostics | Download the diagnostics of the device. Read one raw system status and one raw category with the commands of the section "Raw answers" | Every register of the raw answers is in the download. No network name, address, device name, program name or other value that identifies the home appears in it |
+| French interface | Set the language of your profile to French, then add the integration and choose the network search | In the list of modules found, the manual choice is shown in French |
+| Thermostat card | Open the card of the thermostat "Stove" | The target moves by whole degrees. The current temperature shows half degrees |
+| Soak | Leave the integration polling for one hour, stove on or off | The log holds no "unavailable" and no failed update |
 | DHCP hostname | Unplug the stove for ten seconds, plug it back, then read the name the module announced in the list of DHCP leases of the router | Note the pattern of the name, without the part that identifies the device |
 
 ## Results
