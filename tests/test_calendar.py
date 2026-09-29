@@ -8,6 +8,7 @@ from homeassistant.helpers import device_registry as dr
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.ravelli_smart_wifi.calendar import DESCRIPTIONS
 from custom_components.ravelli_smart_wifi.const import DOMAIN
 
 from .fake_module import MAC, FakeModule
@@ -236,3 +237,55 @@ async def test_program_that_ends_before_it_starts_is_skipped(
 
     assert len(found) == 7
     assert {event["summary"] for event in found} == {"Evening"}
+
+
+@pytest.mark.parametrize(
+    ("language", "row", "description"),
+    [
+        ("fr", [1, 1, 18, 0, 1, 22, 2, 22, 1, 127, "Evening"], "22 °C, puissance 1"),
+        ("fr", [1, 1, 18, 0, 1, 22, 2, 41, 4, 127, "Evening"], "manuel, puissance 4"),
+        (
+            "fr",
+            [1, 1, 18, 0, 0, 0, 0, 22, 1, 127, "Evening"],
+            "22 °C, puissance 1, début seulement",
+        ),
+        (
+            "fr",
+            [1, 0, 0, 0, 1, 22, 2, 22, 1, 127, "Evening"],
+            "22 °C, puissance 1, arrêt seulement",
+        ),
+        (
+            "fr-CA",
+            [1, 1, 18, 0, 1, 22, 2, 41, 4, 127, "Evening"],
+            "manuel, puissance 4",
+        ),
+        ("de", [1, 1, 18, 0, 1, 22, 2, 41, 4, 127, "Evening"], "manual, power 4"),
+        (
+            "en-GB",
+            [1, 1, 18, 0, 0, 0, 0, 22, 1, 127, "Evening"],
+            "22 °C, power 1, start only",
+        ),
+    ],
+)
+async def test_description_follows_the_language(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    fake_module: FakeModule,
+    language: str,
+    row: list[Any],
+    description: str,
+) -> None:
+    """French for a French Home Assistant, English for any other language."""
+    hass.config.language = language
+    fake_module.programs[0] = row
+    await setup(hass, config_entry)
+
+    found = await events(hass)
+
+    assert found[0]["summary"] == "Evening"
+    assert found[0]["description"] == description
+
+
+def test_french_has_every_text_english_has() -> None:
+    """A text added in English cannot be forgotten in French."""
+    assert set(DESCRIPTIONS["fr"]) == set(DESCRIPTIONS["en"])

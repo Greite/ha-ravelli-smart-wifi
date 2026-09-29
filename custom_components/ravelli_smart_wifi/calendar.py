@@ -17,9 +17,28 @@ from .models import MANUAL_SETPOINT, WEEKDAYS, Schedule, ScheduleProgram
 SINGLE_TIME_LENGTH = timedelta(minutes=15)
 # How far the entity looks for its next event: a week and a day.
 LOOKAHEAD = timedelta(days=8)
+# Texts of the event descriptions, by language. Home Assistant has no place for
+# the content of calendar events in its translation files. A language that is
+# not listed here falls back to English.
+DESCRIPTIONS = {
+    "en": {
+        "manual": "manual",
+        "power": "power",
+        "start_only": "start only",
+        "stop_only": "stop only",
+    },
+    "fr": {
+        "manual": "manuel",
+        "power": "puissance",
+        "start_only": "début seulement",
+        "stop_only": "arrêt seulement",
+    },
+}
 
 
-def _event(program: ScheduleProgram, day: date, zone: tzinfo) -> CalendarEvent | None:
+def _event(
+    program: ScheduleProgram, day: date, zone: tzinfo, texts: dict[str, str]
+) -> CalendarEvent | None:
     """Return the event of a program on one day."""
     first = program.start or program.end
     if first is None:
@@ -33,9 +52,9 @@ def _event(program: ScheduleProgram, day: date, zone: tzinfo) -> CalendarEvent |
         note = ""
     else:
         finish = begin + SINGLE_TIME_LENGTH
-        note = ", start only" if program.start is not None else ", stop only"
+        note = ", " + texts["start_only" if program.start is not None else "stop_only"]
     target = (
-        "manual"
+        texts["manual"]
         if program.temperature == MANUAL_SETPOINT
         else f"{program.temperature} °C"
     )
@@ -43,14 +62,15 @@ def _event(program: ScheduleProgram, day: date, zone: tzinfo) -> CalendarEvent |
         start=begin,
         end=finish,
         summary=program.name,
-        description=f"{target}, power {program.power}{note}",
+        description=f"{target}, {texts['power']} {program.power}{note}",
     )
 
 
 def schedule_events(
-    schedule: Schedule, start: datetime, end: datetime
+    schedule: Schedule, start: datetime, end: datetime, language: str = "en"
 ) -> list[CalendarEvent]:
     """Return the events of the schedule that overlap a window."""
+    texts = DESCRIPTIONS.get(language.split("-")[0].lower(), DESCRIPTIONS["en"])
     if not schedule.enabled:
         return []
     start = dt_util.as_local(start)
@@ -66,7 +86,7 @@ def schedule_events(
                 continue
             if weekday not in program.weekdays:
                 continue
-            event = _event(program, day, zone)
+            event = _event(program, day, zone, texts)
             if event is not None and event.end > start and event.start < end:
                 events.append(event)
         day += timedelta(days=1)
@@ -96,7 +116,11 @@ class RavelliScheduleCalendar(RavelliEntity, CalendarEntity):
 
     def _events(self, start: datetime, end: datetime) -> list[CalendarEvent]:
         schedule = self.coordinator.data.schedule
-        return [] if schedule is None else schedule_events(schedule, start, end)
+        return (
+            []
+            if schedule is None
+            else schedule_events(schedule, start, end, self.hass.config.language)
+        )
 
     @property
     def event(self) -> CalendarEvent | None:
