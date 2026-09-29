@@ -1,5 +1,6 @@
 """Tests for the diagnostics download."""
 
+import asyncio
 import json
 
 import aiohttp
@@ -11,7 +12,7 @@ from custom_components.ravelli_smart_wifi.diagnostics import (
     async_get_config_entry_diagnostics,
 )
 
-from .fake_module import HOST, MAC, FakeModule
+from .fake_module import HOST, MAC, PATH_GET, FakeModule
 
 PERSONAL = (HOST, MAC, "192.0.2", "255.255.255.0", "example-network", "Evening")
 
@@ -137,3 +138,44 @@ async def test_diagnostics_keep_only_the_keys_support_needs(
         assert category[key] == value, key
     assert [50, 22] in category["params"]
     assert "home-token" not in json.dumps(result, default=str)
+
+
+async def test_unreachable_module_gets_one_request_only(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """A module that does not answer is not asked fifteen times."""
+    fake_module.error = aiohttp.ClientConnectionError("no answer")
+    before = len(fake_module.requests)
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    assert len(fake_module.requests) - before == 1
+    failed = {"error": "WinetConnectionError"}
+    assert result["system"] == failed
+    assert result["schedule"] == failed
+    assert result["categories"] == {str(number): failed for number in range(13)}
+
+
+async def test_turn_off_does_not_wait_for_the_download(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """A turn-off starts after one request of the download, not after all."""
+    coordinator = init_integration.runtime_data
+    fake_module.common[2] = 5
+    fake_module.delay = 0.02
+    before = len(fake_module.requests)
+
+    download = asyncio.create_task(coordinator.async_read_diagnostics())
+    await asyncio.sleep(0.03)
+    await coordinator.async_set_power(False)
+    off_at = next(
+        index
+        for index, (_, fields) in enumerate(fake_module.requests[before:])
+        if fields.get("key") == "022"
+    )
+    await download
+
+    assert off_at <= 3
+    assert fake_module.count(PATH_GET, key="022", status="0") == 1
+    assert len(fake_module.requests) - before > 15
+    assert fake_module.max_concurrent == 1

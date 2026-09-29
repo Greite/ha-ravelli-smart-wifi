@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import partial
 import logging
 from typing import Any
 
@@ -304,22 +305,34 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         """Read every register category, the status and the schedule.
 
         A request that fails gives the name of its error class in place of
-        its answer; the message can hold the address of the module.
+        its answer; the message can hold the address of the module. The lock
+        is taken for one request at a time, so a command waits for one
+        request at most. When the module does not answer, the remaining
+        requests are not sent and carry the same error class.
         """
+        unreachable: str | None = None
 
-        async def read(request: Awaitable[dict[str, Any]]) -> dict[str, Any] | str:
+        async def read(
+            request: Callable[[], Awaitable[dict[str, Any]]],
+        ) -> dict[str, Any] | str:
+            nonlocal unreachable
+            if unreachable is not None:
+                return unreachable
             try:
-                return await request
+                async with self._lock:
+                    return await request()
+            except WinetConnectionError as err:
+                unreachable = type(err).__name__
+                return unreachable
             except WinetError as err:
                 return type(err).__name__
 
-        async with self._lock:
-            categories = {
-                str(category): await read(self.client.get_registers(category))
-                for category in range(DIAGNOSTIC_CATEGORIES)
-            }
-            return {
-                "system": await read(self.client.get_status()),
-                "categories": categories,
-                "schedule": await read(self.client.get_schedule()),
-            }
+        categories = {
+            str(category): await read(partial(self.client.get_registers, category))
+            for category in range(DIAGNOSTIC_CATEGORIES)
+        }
+        return {
+            "system": await read(self.client.get_status),
+            "categories": categories,
+            "schedule": await read(self.client.get_schedule),
+        }
