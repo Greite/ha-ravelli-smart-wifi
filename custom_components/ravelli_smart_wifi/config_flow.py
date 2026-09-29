@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from ipaddress import IPv4Network, ip_address
 import logging
@@ -11,17 +11,26 @@ from typing import Any
 
 from getmac import get_mac_address
 from homeassistant.components import network
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
-from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
+from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL, CONF_SCAN_INTERVAL
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 import voluptuous as vol
 
 from .api import (
@@ -32,7 +41,16 @@ from .api import (
     is_winet_status,
     normalize_host,
 )
-from .const import DOMAIN, ISSUE_URL, SCAN_CONCURRENCY, SCAN_MIN_PREFIX, SCAN_TIMEOUT
+from .const import (
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    ISSUE_URL,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    SCAN_CONCURRENCY,
+    SCAN_MIN_PREFIX,
+    SCAN_TIMEOUT,
+)
 from .models import SUPPORTED_MODELS, StoveModel
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,6 +165,83 @@ class RavelliConfigFlow(ConfigFlow, domain=DOMAIN):
         self._found: list[str] = []
         self._scan_was_empty = False
         self._probe: ProbeResult | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> RavelliOptionsFlow:
+        """Return the flow that edits the options."""
+        return RavelliOptionsFlow()
+
+    async def async_step_dhcp(
+        self, discovery_info: DhcpServiceInfo
+    ) -> ConfigFlowResult:
+        """Handle a module seen on the network by the DHCP integration."""
+        mac = format_mac(discovery_info.macaddress)
+        await self.async_set_unique_id(mac)
+        # A known module with a new lease: the entry follows it.
+        self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.ip})
+        try:
+            probe = await async_probe(self.hass, discovery_info.ip)
+        except ProbeError as err:
+            if err.reason == "unsupported_model":
+                return self._abort_unsupported(err)
+            return self.async_abort(reason=err.reason)
+        self._probe = replace(probe, mac=mac)
+        self.context["title_placeholders"] = {
+            "name": f"Ravelli {probe.model.name}",
+            "host": probe.host,
+        }
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask before adding a module that was discovered."""
+        assert self._probe is not None
+        if user_input is not None:
+            return await self._async_create(self._probe)
+        self._set_confirm_only()
+        return self.async_show_form(
+            step_id="discovery_confirm",
+            description_placeholders={
+                "model": self._probe.model.name,
+                "host": self._probe.host,
+            },
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the address of a module that is already set up."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            host = normalize_host(user_input[CONF_HOST])
+            if not host:
+                errors["base"] = "invalid_host"
+            else:
+                try:
+                    probe = await async_probe(self.hass, host)
+                except ProbeError as err:
+                    if err.reason == "unsupported_model":
+                        return self._abort_unsupported(err)
+                    errors["base"] = err.reason
+                else:
+                    if entry.unique_id and probe.mac and probe.mac != entry.unique_id:
+                        return self.async_abort(reason="wrong_device")
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates={
+                            CONF_HOST: probe.host,
+                            CONF_MODEL: probe.model.code,
+                        },
+                    )
+        schema = vol.Schema(
+            {vol.Required(CONF_HOST, default=entry.data[CONF_HOST]): str}
+        )
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -267,3 +362,33 @@ class RavelliConfigFlow(ConfigFlow, domain=DOMAIN):
                 "issue_url": ISSUE_URL,
             },
         )
+
+
+class RavelliOptionsFlow(OptionsFlowWithReload):
+    """Edits the polling interval; the entry is reloaded when it changes."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the polling interval."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])}
+            )
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_SCAN_INTERVAL, default=current): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL,
+                        max=MAX_SCAN_INTERVAL,
+                        step=1,
+                        unit_of_measurement="s",
+                        mode=NumberSelectorMode.BOX,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)
