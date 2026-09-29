@@ -5,21 +5,33 @@ from __future__ import annotations
 from homeassistant.const import CONF_HOST, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
 
 from .api import WinetClient, WinetError
 from .const import DOMAIN, ISSUE_URL
 from .coordinator import RavelliConfigEntry, RavelliCoordinator
 from .models import SUPPORTED_MODELS
+from .services import async_setup_services
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.CALENDAR,
     Platform.CLIMATE,
     Platform.NUMBER,
     Platform.SENSOR,
     Platform.SWITCH,
 ]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the actions once, whatever the number of stoves."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: RavelliConfigEntry) -> bool:

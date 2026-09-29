@@ -1,0 +1,73 @@
+set_schedule_program:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ravelli_smart_wifi
+    slot:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 6
+          mode: box
+    name:
+      required: true
+      selector:
+        text:
+    enabled:
+      default: true
+      selector:
+        boolean:
+    start:
+      selector:
+        time:
+    end:
+      selector:
+        time:
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 40
+          unit_of_measurement: "°C"
+    manual:
+      default: false
+      selector:
+        boolean:
+    power:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 5
+    weekdays:
+      required: true
+      selector:
+        select:
+          multiple: true
+          translation_key: weekday
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+
+delete_schedule_program:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ravelli_smart_wifi
+    slot:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 6
+          mode: box
