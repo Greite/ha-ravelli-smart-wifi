@@ -226,6 +226,24 @@ async def test_module_without_a_known_mac_address(
         assert result["reason"] == "already_configured"
 
 
+async def test_entry_without_a_mac_address_blocks_a_later_lookup(
+    hass: HomeAssistant, fake_module: FakeModule, mock_mac: None
+) -> None:
+    """The host of an entry created without a MAC address is checked too."""
+    MockConfigEntry(
+        domain=DOMAIN, data={CONF_HOST: HOST, CONF_MODEL: 7, CONF_MAC: None}
+    ).add_to_hass(hass)
+    result = await start(hass, "manual")
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST}
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+
+
 async def test_hostname_is_looked_up_by_name(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:

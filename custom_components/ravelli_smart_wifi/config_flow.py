@@ -342,8 +342,8 @@ class RavelliConfigFlow(ConfigFlow, domain=DOMAIN):
         if probe.mac:
             await self.async_set_unique_id(probe.mac)
             self._abort_if_unique_id_configured(updates={CONF_HOST: probe.host})
-        else:
-            self._async_abort_entries_match({CONF_HOST: probe.host})
+        # An entry created without a MAC address has no unique id to match.
+        self._async_abort_entries_match({CONF_HOST: probe.host})
         return self.async_create_entry(
             title=f"Ravelli {probe.model.name}",
             data={
