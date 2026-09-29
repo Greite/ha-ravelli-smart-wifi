@@ -57,3 +57,19 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 
 | Date | Board | Firmware | Point | Result |
 |---|---|---|---|---|
+| 2026-09-29 | AIR-RDS | 0.51 | French interface | Pass. The manual choice of the list of modules is shown in French |
+| 2026-09-29 | AIR-RDS | 0.51 | Diagnostics | Pass. The 13 categories are in the download, the registers equal the raw answer, and no address, network name, device name, program name or MAC address appears |
+| 2026-09-29 | AIR-RDS | 0.51 | Clock | Pass. Six register writes confirmed by the module. The display is within one minute of the reference: the module has no register for the seconds |
+| 2026-09-29 | AIR-RDS | 0.51 | Target and power | Pass. Registers 50 and 51 written and read back. The power is shown on the home screen of the stove; the target is read with key 1. Values outside the bounds are refused and nothing is sent |
+| 2026-09-29 | AIR-RDS | 0.51 | Manual mode | Pass. The set temperature screen shows MAN. Choosing "None" restores the previous target |
+| 2026-09-29 | AIR-RDS | 0.51 | Schedule, names | Pass. A name with an accented letter comes back unchanged |
+| 2026-09-29 | AIR-RDS | 0.51 | Schedule, write | Pass. The other programs are unchanged |
+| 2026-09-29 | AIR-RDS | 0.51 | Schedule, switch | Pass, off then on. The programs are unchanged |
+| 2026-09-29 | AIR-RDS | 0.51 | Schedule, switch with a foreign program | Pass. The program with the accented name is unchanged, name included |
+| 2026-09-29 | AIR-RDS | 0.51 | Schedule, delete | Pass. The module clears the name, the power and the enabled flag of the freed row and leaves its stop time in place; the row is free by the rule of the page of the module |
+| 2026-09-29 | AIR-RDS | 0.51 | Answers to commands | The module answers `{"result":true}` to `key=002` (register write), `key=022` (on and off), `key=032` (schedule write) and `key=034` (program delete) |
+| 2026-09-29 | AIR-RDS | 0.51 | On and off | Partial. The on command ignites the stove; the status codes 1, 2 and 3 were seen in that order. The stove was then turned off from its own button before it reached "Working", and the status code 6 followed. The status codes 4, 5 and 7 and the off command are not verified |
+| 2026-09-29 | AIR-RDS | 0.51 | Turn-off rule | Not applicable. The board reports 255 as its flame value during the whole cycle, which means "no information" |
+| 2026-09-29 | AIR-RDS | 0.51 | Flue gas temperature | Fail. Register 4 stays at 0 while the display of the stove shows 106 °C. The value is in no register of the categories 0 to 20 at the access level of the integration |
+| 2026-09-29 | AIR-RDS | 0.51 | Extractor speed | One reading only: raw 253 for 2780 rpm on the display, which fits `raw × 10 + 250`. Two more readings are needed |
+| 2026-09-29 | AIR-RDS | 0.51 | Thermostat card, Soak, DHCP hostname | Not checked yet |
