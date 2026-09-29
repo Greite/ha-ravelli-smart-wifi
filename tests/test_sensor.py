@@ -143,6 +143,23 @@ async def test_alarm_message(
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "alarm"
 
 
+async def test_alarm_without_a_text_shows_its_code(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Never "none" while the alarm register is set."""
+    alarm_id = entity_id_for(hass, "sensor", "alarm")
+    assert hass.states.get(alarm_id).state == "none"
+    fake_module.common.update({2: 8, 3: 5})
+    fake_module.extra["alr"] = ""
+
+    await advance(hass, freezer)
+
+    assert hass.states.get(alarm_id).state == "code 5"
+
+
 async def test_missing_register_gives_an_unknown_state(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,

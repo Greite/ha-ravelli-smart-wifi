@@ -28,6 +28,14 @@ from .models import REG_ALARM, STATUS_KEYS, STATUS_UNKNOWN
 ALARM_NONE = "none"
 
 
+def _alarm(data: RavelliData) -> str:
+    """Return the alarm text, the raw code when there is no text, or none."""
+    if data.state.alarm_text:
+        return data.state.alarm_text
+    code = data.state.raw(REG_ALARM)
+    return f"code {code}" if code else ALARM_NONE
+
+
 def _status(data: RavelliData) -> str | None:
     """Return the status key; None gives the unknown state."""
     key = data.state.status_key
@@ -52,7 +60,7 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
     ),
     RavelliSensorDescription(
         key="alarm",
-        value_fn=lambda data: data.state.alarm_text or ALARM_NONE,
+        value_fn=_alarm,
         raw_fn=lambda data: data.state.raw(REG_ALARM),
     ),
     RavelliSensorDescription(
