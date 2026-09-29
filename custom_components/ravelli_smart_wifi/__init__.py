@@ -12,7 +12,7 @@ from .const import DOMAIN, ISSUE_URL
 from .coordinator import RavelliConfigEntry, RavelliCoordinator
 from .models import SUPPORTED_MODELS
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: RavelliConfigEntry) -> bool:
