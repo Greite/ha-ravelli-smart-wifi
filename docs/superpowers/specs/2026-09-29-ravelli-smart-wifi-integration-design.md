@@ -412,3 +412,4 @@ release:
 | Unknown status code | Home Assistant `unknown` state instead of an `unknown` enum option | `unknown` is a reserved state in Home Assistant |
 | On and off commands | Fresh read of the stove state before the safety rules | The polled state can be 30 seconds old |
 | Minimum Home Assistant version | 2026.9.0 | Only tested version |
+| Calendar descriptions | In French when Home Assistant is in French, in English otherwise | Asked by the owner after the final review |
