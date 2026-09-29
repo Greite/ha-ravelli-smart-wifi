@@ -36,7 +36,7 @@ EVENING_FIELDS = {
 }
 
 
-def answer(*programs: list[Any], enabled: bool = True) -> dict[str, Any]:
+def answer(*programs: list[Any], enabled: Any = True) -> dict[str, Any]:
     """Build the answer to a schedule read, padded to six slots."""
     rows = [*programs, *([FREE_RAW] * (6 - len(programs)))]
     return {"key": 33, "enabled": enabled, "programs": rows}
@@ -147,6 +147,30 @@ def test_disabled_schedule() -> None:
 
     assert schedule.enabled is False
     assert schedule.to_fields()["enabled"] == 0
+
+
+@pytest.mark.parametrize(
+    ("flag", "enabled"), [(True, True), (False, False), (1, True), (0, False)]
+)
+def test_global_flag_values(flag: Any, enabled: bool) -> None:
+    """A boolean, 0 or 1."""
+    assert Schedule.from_payload(answer(EVENING_RAW, enabled=flag)).enabled is enabled
+
+
+@pytest.mark.parametrize("flag", ["0", "1", 2, -1, None, 1.0, "true"])
+def test_global_flag_is_not_coerced(flag: Any) -> None:
+    """Written back as it is read: a misread flag could start the stove."""
+    with pytest.raises(InvalidPayloadError):
+        Schedule.from_payload(answer(EVENING_RAW, enabled=flag))
+
+
+def test_missing_global_flag_is_rejected() -> None:
+    """A missing flag is not an off flag."""
+    payload = answer(EVENING_RAW)
+    del payload["enabled"]
+
+    with pytest.raises(InvalidPayloadError):
+        Schedule.from_payload(payload)
 
 
 @pytest.mark.parametrize(

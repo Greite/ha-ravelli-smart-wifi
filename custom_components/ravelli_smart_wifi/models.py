@@ -455,8 +455,13 @@ class Schedule:
         rows = payload.get("programs")
         if not isinstance(rows, list) or len(rows) != SLOT_COUNT:
             raise InvalidPayloadError("the schedule does not hold six programs")
+        # Every write sends the flag back: a misread flag could make the stove
+        # start by itself, so only a boolean, 0 or 1 is accepted.
+        flag = payload.get("enabled")
+        if not isinstance(flag, bool) and not (_is_int(flag) and flag in (0, 1)):
+            raise InvalidPayloadError("the global schedule flag is not 0 or 1")
         return cls(
-            enabled=bool(payload.get("enabled")),
+            enabled=flag == 1,
             programs=tuple(ScheduleProgram.from_raw(row) for row in rows),
         )
 
