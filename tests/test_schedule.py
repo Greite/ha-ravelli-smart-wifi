@@ -109,6 +109,26 @@ def test_malformed_programs_are_rejected(raw: Any) -> None:
         ScheduleProgram.from_raw(raw)
 
 
+@pytest.mark.parametrize(
+    ("raw", "shape"),
+    [
+        ([1, 1, 18, 0, 1, 22, 2, 22, 1, "Secret"], "10 items"),
+        ([1, 1, 18, 0, 1, 22, 2, 22, 1, 127, "Secret", 1], "12 items"),
+        ([1, 1, "Secret", 0, 1, 22, 2, 22, 1, 127, "Secret"], "item 2"),
+        ([1, 1, 18, 0, 1, 22, 2, 22, 1, 127, ["Secret"]], "item 10"),
+        ([1, 1, 24, 0, 1, 22, 2, 22, 1, 127, "Secret"], "24"),
+        ("Secret", "str"),
+    ],
+)
+def test_decode_errors_describe_the_shape_not_the_content(raw: Any, shape: str) -> None:
+    """The message reaches the log: never the name typed by the owner."""
+    with pytest.raises(InvalidPayloadError) as err:
+        ScheduleProgram.from_raw(raw)
+
+    assert "Secret" not in str(err.value)
+    assert shape in str(err.value)
+
+
 def test_program_fields() -> None:
     """Start and stop are packed as enabled, hour and quarter."""
     assert EVENING.to_fields(1) == EVENING_FIELDS

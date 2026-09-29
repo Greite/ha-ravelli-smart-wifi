@@ -371,11 +371,26 @@ class ScheduleProgram:
     @classmethod
     def from_raw(cls, raw: Any) -> ScheduleProgram | None:
         """Decode one row of a schedule read; None is a free slot."""
-        if not isinstance(raw, list) or len(raw) != _PROGRAM_LENGTH:
-            raise InvalidPayloadError(f"malformed program: {raw!r}")
+        # The messages describe the shape of the row, never its content: they
+        # reach the log and the row holds a name typed by the owner.
+        if not isinstance(raw, list):
+            raise InvalidPayloadError(
+                f"malformed program: {type(raw).__name__} instead of a list"
+            )
+        if len(raw) != _PROGRAM_LENGTH:
+            raise InvalidPayloadError(
+                f"malformed program: {len(raw)} items instead of {_PROGRAM_LENGTH}"
+            )
         *numbers, name = raw
-        if not isinstance(name, str) or not all(_is_int(item) for item in numbers):
-            raise InvalidPayloadError(f"malformed program: {raw!r}")
+        for position, item in enumerate(numbers):
+            if not _is_int(item):
+                raise InvalidPayloadError(
+                    f"malformed program: item {position} is not an integer"
+                )
+        if not isinstance(name, str):
+            raise InvalidPayloadError(
+                f"malformed program: item {len(numbers)} is not a text"
+            )
         (
             enabled,
             start_enabled,
