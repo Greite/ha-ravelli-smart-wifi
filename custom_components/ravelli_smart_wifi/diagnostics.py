@@ -52,15 +52,24 @@ def _keep(payload: dict[str, Any] | str, keep: set[str]) -> dict[str, Any]:
     return {key: value if key in keep else REDACTED for key, value in payload.items()}
 
 
+def _redact_program(program: Any) -> list[Any] | str:
+    """Keep the integers of a program row; describe a row of another shape."""
+    if not isinstance(program, list):
+        return type(program).__name__
+    if len(program) != _NAME + 1:
+        return f"list of {len(program)} items"
+    numbers = [
+        item if isinstance(item, int) and not isinstance(item, bool) else REDACTED
+        for item in program[:_NAME]
+    ]
+    return [*numbers, REDACTED if program[_NAME] else ""]
+
+
 def _redact_schedule(schedule: dict[str, Any] | str) -> dict[str, Any]:
-    """Hide the program names: they are free text typed by the owner."""
+    """Hide the program names, free text typed by the owner, and any non-number."""
     if isinstance(schedule, str):
         return {"error": schedule}
-    programs = [
-        [*program[:_NAME], REDACTED if program[_NAME] else ""]
-        for program in schedule.get("programs", [])
-        if isinstance(program, list) and len(program) > _NAME
-    ]
+    programs = [_redact_program(program) for program in schedule.get("programs", [])]
     return {**_keep(schedule, KEEP_SCHEDULE), "programs": programs}
 
 

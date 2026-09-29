@@ -179,3 +179,40 @@ async def test_turn_off_does_not_wait_for_the_download(
     assert fake_module.count(PATH_GET, key="022", status="0") == 1
     assert len(fake_module.requests) - before > 15
     assert fake_module.max_concurrent == 1
+
+
+async def test_malformed_schedule_rows_are_redacted_or_described(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Nothing but an integer comes out of a row; a bad row is described."""
+    fake_module.programs = [
+        [1, "secret-a", 18, 0, 1, 22, 2, 22, True, 127, "Evening"],
+        [1, 1, 18, 0, 1, 22, 2, 22, 1, 127],
+        "secret-b",
+        [1, 1, 18, 0, 1, 22, 2, 22, 1, 127, "Evening", "secret-c"],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+    ]
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    programs = result["schedule"]["programs"]
+    assert programs[0] == [
+        1,
+        REDACTED,
+        18,
+        0,
+        1,
+        22,
+        2,
+        22,
+        REDACTED,
+        127,
+        REDACTED,
+    ]
+    assert programs[1] == "list of 10 items"
+    assert programs[2] == "str"
+    assert programs[3] == "list of 12 items"
+    assert programs[4][10] == ""
+    text = json.dumps(result, default=str)
+    for secret in ("secret-a", "secret-b", "secret-c"):
+        assert secret not in text, secret
