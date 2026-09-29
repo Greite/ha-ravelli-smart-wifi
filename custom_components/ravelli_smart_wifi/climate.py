@@ -19,9 +19,28 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import DOMAIN
 from .coordinator import RavelliConfigEntry, RavelliCoordinator
 from .entity import RavelliEntity
-from .models import MANUAL_SETPOINT, REG_POWER, REG_SETPOINT
+from .models import (
+    DUCT_EXTERNAL,
+    DUCT_OFF,
+    MANUAL_SETPOINT,
+    REG_DUCT_LEFT_SETPOINT,
+    REG_DUCT_LEFT_TEMP,
+    REG_DUCT_RIGHT_SETPOINT,
+    REG_DUCT_RIGHT_TEMP,
+    REG_POWER,
+    REG_SETPOINT,
+    REG_WATER_SETPOINT,
+    WATER_MANUAL_SETPOINT,
+)
 
 PRESET_MANUAL = "manual"
+PRESET_EXTERNAL = "external_thermostat"
+
+# Key of the entity: set point register, temperature register.
+DUCTS: dict[str, tuple[int, int]] = {
+    "duct_right": (REG_DUCT_RIGHT_SETPOINT, REG_DUCT_RIGHT_TEMP),
+    "duct_left": (REG_DUCT_LEFT_SETPOINT, REG_DUCT_LEFT_TEMP),
+}
 
 HVAC_ACTIONS: dict[int, HVACAction] = {
     0: HVACAction.OFF,
@@ -42,8 +61,14 @@ async def async_setup_entry(
     entry: RavelliConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create the thermostats of one stove."""
-    async_add_entities([RavelliStoveClimate(entry.runtime_data)])
+    """Create the thermostats the stove model has."""
+    coordinator = entry.runtime_data
+    entities: list[ClimateEntity] = [RavelliStoveClimate(coordinator)]
+    if coordinator.model.has_ducting:
+        entities.extend(RavelliDuctClimate(coordinator, key) for key in DUCTS)
+    if coordinator.model.has_water:
+        entities.append(RavelliWaterClimate(coordinator))
+    async_add_entities(entities)
 
 
 class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
@@ -181,3 +206,76 @@ class RavelliStoveClimate(RavelliPowerClimate):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Write the power level."""
         await self.coordinator.async_write_register(REG_POWER, int(fan_mode))
+
+
+class RavelliDuctClimate(RavelliSetpointClimate):
+    """One ducted air outlet; the module cannot tell whether it is fitted."""
+
+    _attr_entity_registry_enabled_default = False
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
+    )
+    _attr_min_temp = 7
+    _attr_max_temp = 41
+    _presets = {DUCT_EXTERNAL: PRESET_EXTERNAL}
+
+    def __init__(self, coordinator: RavelliCoordinator, key: str) -> None:
+        """Pick the registers of the right or of the left outlet."""
+        self._register, self._temperature_register = DUCTS[key]
+        super().__init__(coordinator, key)
+
+    @property
+    def hvac_mode(self) -> HVACMode:
+        """Return off for the raw value 5."""
+        raw = self._raw()
+        return HVACMode.OFF if raw is None or raw == DUCT_OFF else HVACMode.HEAT
+
+    @property
+    def current_temperature(self) -> float | None:
+        """Return the temperature of the outlet, None without a reading."""
+        return self.coordinator.data.state.raw(self._temperature_register) or None
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Turn the outlet off, or back on at its last target."""
+        if hvac_mode == HVACMode.OFF:
+            await self.coordinator.async_write_register(self._register, DUCT_OFF)
+        elif self.hvac_mode == HVACMode.OFF:
+            await self.coordinator.async_write_register(
+                self._register, self._last_target or self._default_target
+            )
+
+    async def async_turn_on(self) -> None:
+        """Turn the outlet on."""
+        await self.async_set_hvac_mode(HVACMode.HEAT)
+
+    async def async_turn_off(self) -> None:
+        """Turn the outlet off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
+
+class RavelliWaterClimate(RavelliPowerClimate):
+    """Water circuit of a hydro stove."""
+
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
+    )
+    _attr_min_temp = 30
+    _attr_max_temp = 80
+    _register = REG_WATER_SETPOINT
+    _presets = {WATER_MANUAL_SETPOINT: PRESET_MANUAL}
+    _default_target = 60
+
+    def __init__(self, coordinator: RavelliCoordinator) -> None:
+        """Create the thermostat of the water circuit."""
+        super().__init__(coordinator, "water")
+
+    @property
+    def current_temperature(self) -> float | None:
+        """Return the water temperature."""
+        return self.coordinator.data.state.water_temperature
