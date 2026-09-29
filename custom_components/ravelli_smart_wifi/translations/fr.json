@@ -1,0 +1,332 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "Ravelli Smart Wi-Fi",
+        "description": "Choisissez comment trouver le module Wi-Fi du poêle.",
+        "menu_options": {
+          "scan": "Rechercher sur le réseau local",
+          "manual": "Saisir l'adresse manuellement"
+        }
+      },
+      "pick": {
+        "title": "Modules trouvés",
+        "data": {
+          "host": "Module"
+        },
+        "data_description": {
+          "host": "Module Wi-Fi à ajouter."
+        }
+      },
+      "manual": {
+        "title": "Adresse du module",
+        "data": {
+          "host": "Hôte"
+        },
+        "data_description": {
+          "host": "Adresse IP ou nom d'hôte du module Wi-Fi."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Poêle Ravelli trouvé",
+        "description": "Voulez-vous ajouter le poêle {model} trouvé à l'adresse {host} ?"
+      },
+      "reconfigure": {
+        "title": "Changer l'adresse du module",
+        "data": {
+          "host": "Hôte"
+        },
+        "data_description": {
+          "host": "Nouvelle adresse IP ou nouveau nom d'hôte du module Wi-Fi."
+        }
+      }
+    },
+    "progress": {
+      "scan": "Recherche des modules Wi-Fi sur le réseau local. Cela peut prendre jusqu'à une minute."
+    },
+    "error": {
+      "cannot_connect": "Rien ne répond à cette adresse.",
+      "invalid_host": "Saisissez une adresse IP ou un nom d'hôte.",
+      "none_found": "Aucun module n'a été trouvé sur le réseau local. Saisissez son adresse.",
+      "not_winet": "Un appareil répond à cette adresse, mais ce n'est pas un module Ravelli Smart Wi-Fi."
+    },
+    "abort": {
+      "already_configured": "Ce module est déjà configuré.",
+      "already_in_progress": "La configuration de ce module est déjà en cours.",
+      "cannot_connect": "Rien ne répond à cette adresse.",
+      "not_winet": "L'appareil n'est pas un module Ravelli Smart Wi-Fi.",
+      "reconfigure_successful": "L'adresse a été mise à jour.",
+      "unsupported_model": "Le modèle de poêle {model} n'est pas encore pris en charge. Demandez-le sur {issue_url}.",
+      "wrong_device": "Le module à cette adresse n'est pas celui qui a été configuré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options de Ravelli Smart Wi-Fi",
+        "data": {
+          "scan_interval": "Intervalle de lecture"
+        },
+        "data_description": {
+          "scan_interval": "Secondes entre deux lectures du poêle, de 10 à 300."
+        }
+      }
+    }
+  },
+  "selector": {
+    "host_choice": {
+      "options": {
+        "manual": "Saisir l'adresse manuellement"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "Lundi",
+        "tue": "Mardi",
+        "wed": "Mercredi",
+        "thu": "Jeudi",
+        "fri": "Vendredi",
+        "sat": "Samedi",
+        "sun": "Dimanche"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alarm": {
+        "name": "Alarme"
+      },
+      "firmware_update": {
+        "name": "Mise à jour du firmware"
+      },
+      "flame": {
+        "name": "Flamme"
+      }
+    },
+    "button": {
+      "sync_clock": {
+        "name": "Synchroniser l'horloge"
+      }
+    },
+    "calendar": {
+      "schedule": {
+        "name": "Programmation"
+      }
+    },
+    "climate": {
+      "duct_left": {
+        "name": "Canalisation gauche",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "external_thermostat": "Thermostat externe"
+            }
+          }
+        }
+      },
+      "duct_right": {
+        "name": "Canalisation droite",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "external_thermostat": "Thermostat externe"
+            }
+          }
+        }
+      },
+      "stove": {
+        "name": "Poêle",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manuel"
+            }
+          }
+        }
+      },
+      "water": {
+        "name": "Eau",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manuel"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "comfort_delay": {
+        "name": "Délai du confort climat"
+      },
+      "comfort_delta": {
+        "name": "Écart du confort climat"
+      },
+      "power": {
+        "name": "Puissance"
+      }
+    },
+    "sensor": {
+      "alarm": {
+        "name": "Message d'alarme",
+        "state": {
+          "none": "Aucune"
+        }
+      },
+      "ambient_temperature": {
+        "name": "Température ambiante"
+      },
+      "extractor_speed": {
+        "name": "Vitesse de l'extracteur"
+      },
+      "flue_temperature": {
+        "name": "Température des fumées"
+      },
+      "status": {
+        "name": "État",
+        "state": {
+          "off": "Éteint",
+          "pellet_loading": "Chargement des granulés",
+          "ignition": "Allumage",
+          "waiting_flame": "Attente de la flamme",
+          "flame_present": "Flamme présente",
+          "working": "En chauffe",
+          "final_cleaning": "Nettoyage final",
+          "eco_stop": "Eco stop",
+          "alarm": "Alarme",
+          "alarm_memory": "Alarme mémorisée"
+        }
+      },
+      "wifi_signal": {
+        "name": "Signal Wi-Fi"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "name": "Programmation"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Le module Wi-Fi du poêle ne répond pas."
+    },
+    "command_refused": {
+      "message": "Le module Wi-Fi a refusé la commande."
+    },
+    "device_not_found": {
+      "message": "L'appareil sélectionné n'est pas un poêle Ravelli configuré et chargé."
+    },
+    "register_not_writable": {
+      "message": "Le registre {register} ne peut pas être écrit sur ce modèle de poêle."
+    },
+    "schedule_end_before_start": {
+      "message": "La fin du programme doit être postérieure à son début."
+    },
+    "schedule_mismatch": {
+      "message": "Le module n'a pas enregistré la programmation telle qu'elle a été envoyée. Vérifiez les programmes sur le module."
+    },
+    "schedule_name_characters": {
+      "message": "Le nom du programme ne peut contenir que des lettres sans accent, des chiffres, des espaces et la ponctuation courante."
+    },
+    "schedule_name_length": {
+      "message": "Le nom du programme doit contenir de 1 à 15 caractères."
+    },
+    "schedule_no_time": {
+      "message": "Un programme activé a besoin d'une heure de début ou d'une heure de fin."
+    },
+    "schedule_no_weekday": {
+      "message": "Sélectionnez au moins un jour de la semaine."
+    },
+    "schedule_power_range": {
+      "message": "La puissance doit être comprise entre 1 et 5."
+    },
+    "schedule_slot_range": {
+      "message": "L'emplacement du programme doit être compris entre 1 et 6."
+    },
+    "schedule_temperature_range": {
+      "message": "La température doit être comprise entre 5 et 40 °C."
+    },
+    "schedule_time_step": {
+      "message": "Les heures de début et de fin doivent tomber sur un quart d'heure."
+    },
+    "temperature_required": {
+      "message": "Indiquez une température, ou activez le mode manuel."
+    },
+    "turn_off_during_ignition": {
+      "message": "Le poêle s'allume et la flamme n'est pas établie. Attendez avant de l'éteindre."
+    },
+    "turn_on_in_alarm": {
+      "message": "Le poêle est en alarme. Éteignez-le pour acquitter l'alarme, puis rallumez-le."
+    },
+    "unsupported_model": {
+      "message": "Le modèle de poêle {model} n'est pas encore pris en charge. Demandez-le sur {issue_url}."
+    },
+    "value_out_of_range": {
+      "message": "La valeur {value} est hors de la plage autorisée, de {minimum} à {maximum}."
+    }
+  },
+  "services": {
+    "delete_schedule_program": {
+      "name": "Supprimer un programme",
+      "description": "Libère l'un des six emplacements de programme du poêle.",
+      "fields": {
+        "device_id": {
+          "name": "Poêle",
+          "description": "Poêle dont la programmation est modifiée."
+        },
+        "slot": {
+          "name": "Emplacement",
+          "description": "Emplacement du programme, de 1 à 6."
+        }
+      }
+    },
+    "set_schedule_program": {
+      "name": "Définir un programme",
+      "description": "Enregistre un programme dans l'un des six emplacements du poêle. Les autres emplacements sont conservés.",
+      "fields": {
+        "device_id": {
+          "name": "Poêle",
+          "description": "Poêle dont la programmation est modifiée."
+        },
+        "enabled": {
+          "name": "Activé",
+          "description": "Indique si le poêle suit ce programme."
+        },
+        "end": {
+          "name": "Fin",
+          "description": "Heure à laquelle le poêle s'éteint, sur un quart d'heure. Laissez vide pour un programme qui ne fait qu'allumer le poêle."
+        },
+        "manual": {
+          "name": "Mode manuel",
+          "description": "Fonctionne à la puissance choisie, sans température cible."
+        },
+        "name": {
+          "name": "Nom",
+          "description": "Nom du programme, de 1 à 15 caractères, sans accent."
+        },
+        "power": {
+          "name": "Puissance",
+          "description": "Puissance, de 1 à 5."
+        },
+        "slot": {
+          "name": "Emplacement",
+          "description": "Emplacement du programme, de 1 à 6."
+        },
+        "start": {
+          "name": "Début",
+          "description": "Heure à laquelle le poêle s'allume, sur un quart d'heure. Laissez vide pour un programme qui ne fait qu'éteindre le poêle."
+        },
+        "temperature": {
+          "name": "Température",
+          "description": "Température cible, de 5 à 40 °C. Inutile en mode manuel."
+        },
+        "weekdays": {
+          "name": "Jours",
+          "description": "Jours de la semaine où le programme s'applique."
+        }
+      }
+    }
+  }
+}

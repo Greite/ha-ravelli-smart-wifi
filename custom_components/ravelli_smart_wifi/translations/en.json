@@ -1,0 +1,332 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "Ravelli Smart Wi-Fi",
+        "description": "Choose how to find the Wi-Fi module of the stove.",
+        "menu_options": {
+          "scan": "Search the local network",
+          "manual": "Enter the address manually"
+        }
+      },
+      "pick": {
+        "title": "Modules found",
+        "data": {
+          "host": "Module"
+        },
+        "data_description": {
+          "host": "Wi-Fi module to add."
+        }
+      },
+      "manual": {
+        "title": "Module address",
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the Wi-Fi module."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Ravelli stove found",
+        "description": "Do you want to add the {model} stove found at {host}?"
+      },
+      "reconfigure": {
+        "title": "Change the module address",
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "New IP address or hostname of the Wi-Fi module."
+        }
+      }
+    },
+    "progress": {
+      "scan": "Searching the local network for Wi-Fi modules. This can take up to a minute."
+    },
+    "error": {
+      "cannot_connect": "Nothing answers at this address.",
+      "invalid_host": "Enter an IP address or a hostname.",
+      "none_found": "No module was found on the local network. Enter its address.",
+      "not_winet": "A device answers at this address, but it is not a Ravelli Smart Wi-Fi module."
+    },
+    "abort": {
+      "already_configured": "This module is already configured.",
+      "already_in_progress": "The setup of this module is already in progress.",
+      "cannot_connect": "Nothing answers at this address.",
+      "not_winet": "The device is not a Ravelli Smart Wi-Fi module.",
+      "reconfigure_successful": "The address was updated.",
+      "unsupported_model": "Stove model {model} is not supported yet. Ask for it at {issue_url}.",
+      "wrong_device": "The module at this address is not the one that was configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ravelli Smart Wi-Fi options",
+        "data": {
+          "scan_interval": "Polling interval"
+        },
+        "data_description": {
+          "scan_interval": "Seconds between two readings of the stove, from 10 to 300."
+        }
+      }
+    }
+  },
+  "selector": {
+    "host_choice": {
+      "options": {
+        "manual": "Enter the address manually"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alarm": {
+        "name": "Alarm"
+      },
+      "firmware_update": {
+        "name": "Firmware update"
+      },
+      "flame": {
+        "name": "Flame"
+      }
+    },
+    "button": {
+      "sync_clock": {
+        "name": "Synchronize clock"
+      }
+    },
+    "calendar": {
+      "schedule": {
+        "name": "Schedule"
+      }
+    },
+    "climate": {
+      "duct_left": {
+        "name": "Ducting left",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "external_thermostat": "External thermostat"
+            }
+          }
+        }
+      },
+      "duct_right": {
+        "name": "Ducting right",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "external_thermostat": "External thermostat"
+            }
+          }
+        }
+      },
+      "stove": {
+        "name": "Stove",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manual"
+            }
+          }
+        }
+      },
+      "water": {
+        "name": "Water",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manual"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "comfort_delay": {
+        "name": "Comfort climate delay"
+      },
+      "comfort_delta": {
+        "name": "Comfort climate delta"
+      },
+      "power": {
+        "name": "Power level"
+      }
+    },
+    "sensor": {
+      "alarm": {
+        "name": "Alarm message",
+        "state": {
+          "none": "None"
+        }
+      },
+      "ambient_temperature": {
+        "name": "Ambient temperature"
+      },
+      "extractor_speed": {
+        "name": "Extractor speed"
+      },
+      "flue_temperature": {
+        "name": "Flue gas temperature"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "off": "Off",
+          "pellet_loading": "Loading pellets",
+          "ignition": "Ignition",
+          "waiting_flame": "Waiting for the flame",
+          "flame_present": "Flame present",
+          "working": "Working",
+          "final_cleaning": "Final cleaning",
+          "eco_stop": "Eco stop",
+          "alarm": "Alarm",
+          "alarm_memory": "Alarm memory"
+        }
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "name": "Schedule"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "The Wi-Fi module of the stove does not answer."
+    },
+    "command_refused": {
+      "message": "The Wi-Fi module refused the command."
+    },
+    "device_not_found": {
+      "message": "The selected device is not a Ravelli stove that is set up and loaded."
+    },
+    "register_not_writable": {
+      "message": "Register {register} cannot be written on this stove model."
+    },
+    "schedule_end_before_start": {
+      "message": "The end of the program must be later than its start."
+    },
+    "schedule_mismatch": {
+      "message": "The module did not store the schedule as it was sent. Check the programs on the module."
+    },
+    "schedule_name_characters": {
+      "message": "The program name can only hold unaccented letters, digits, spaces and common punctuation."
+    },
+    "schedule_name_length": {
+      "message": "The program name must hold 1 to 15 characters."
+    },
+    "schedule_no_time": {
+      "message": "An enabled program needs a start time or an end time."
+    },
+    "schedule_no_weekday": {
+      "message": "Select at least one day of the week."
+    },
+    "schedule_power_range": {
+      "message": "The power level must be between 1 and 5."
+    },
+    "schedule_slot_range": {
+      "message": "The program slot must be between 1 and 6."
+    },
+    "schedule_temperature_range": {
+      "message": "The temperature must be between 5 and 40 °C."
+    },
+    "schedule_time_step": {
+      "message": "Start and end times must fall on a quarter of an hour."
+    },
+    "temperature_required": {
+      "message": "Give a temperature, or turn the manual mode on."
+    },
+    "turn_off_during_ignition": {
+      "message": "The stove is igniting and the flame is not established. Wait before turning it off."
+    },
+    "turn_on_in_alarm": {
+      "message": "The stove is in alarm. Turn it off to acknowledge the alarm, then turn it on."
+    },
+    "unsupported_model": {
+      "message": "Stove model {model} is not supported yet. Ask for it at {issue_url}."
+    },
+    "value_out_of_range": {
+      "message": "Value {value} is outside the allowed range, {minimum} to {maximum}."
+    }
+  },
+  "services": {
+    "delete_schedule_program": {
+      "name": "Delete schedule program",
+      "description": "Frees one of the six program slots of the stove.",
+      "fields": {
+        "device_id": {
+          "name": "Stove",
+          "description": "Stove whose schedule is changed."
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "Program slot, from 1 to 6."
+        }
+      }
+    },
+    "set_schedule_program": {
+      "name": "Set schedule program",
+      "description": "Stores a program in one of the six slots of the stove. The other slots are kept.",
+      "fields": {
+        "device_id": {
+          "name": "Stove",
+          "description": "Stove whose schedule is changed."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Whether the stove follows this program."
+        },
+        "end": {
+          "name": "End",
+          "description": "Time at which the stove turns off, on a quarter of an hour. Leave empty for a program that only starts the stove."
+        },
+        "manual": {
+          "name": "Manual mode",
+          "description": "Run at the chosen power without a target temperature."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name of the program, 1 to 15 characters, without accents."
+        },
+        "power": {
+          "name": "Power level",
+          "description": "Power level, from 1 to 5."
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "Program slot, from 1 to 6."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Time at which the stove turns on, on a quarter of an hour. Leave empty for a program that only stops the stove."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Target temperature, from 5 to 40 °C. Not needed in manual mode."
+        },
+        "weekdays": {
+          "name": "Days",
+          "description": "Days of the week on which the program runs."
+        }
+      }
+    }
+  }
+}

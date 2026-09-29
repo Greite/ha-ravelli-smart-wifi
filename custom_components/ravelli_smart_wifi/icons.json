@@ -1,0 +1,71 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "flame": {
+        "default": "mdi:fire-off",
+        "state": {
+          "on": "mdi:fire"
+        }
+      }
+    },
+    "button": {
+      "sync_clock": {
+        "default": "mdi:clock-check-outline"
+      }
+    },
+    "calendar": {
+      "schedule": {
+        "default": "mdi:calendar-clock"
+      }
+    },
+    "climate": {
+      "duct_left": {
+        "default": "mdi:air-filter"
+      },
+      "duct_right": {
+        "default": "mdi:air-filter"
+      },
+      "stove": {
+        "default": "mdi:fireplace"
+      },
+      "water": {
+        "default": "mdi:water-boiler"
+      }
+    },
+    "number": {
+      "comfort_delay": {
+        "default": "mdi:timer-outline"
+      },
+      "comfort_delta": {
+        "default": "mdi:thermometer-lines"
+      },
+      "power": {
+        "default": "mdi:fire"
+      }
+    },
+    "sensor": {
+      "alarm": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "extractor_speed": {
+        "default": "mdi:fan"
+      },
+      "status": {
+        "default": "mdi:fireplace"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "default": "mdi:calendar-clock"
+      }
+    }
+  },
+  "services": {
+    "delete_schedule_program": {
+      "service": "mdi:calendar-remove"
+    },
+    "set_schedule_program": {
+      "service": "mdi:calendar-edit"
+    }
+  }
+}
