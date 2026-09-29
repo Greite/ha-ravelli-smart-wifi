@@ -57,6 +57,7 @@ class FakeModule:
         self.http_status = 200
         self.raw_answers: dict[str, str] = {}
         self.write_result = True
+        self.refused_categories: set[int] = set()
         self.ignore_schedule_writes = False
         self.delay = 0.0
         self.max_concurrent = 0
@@ -113,7 +114,10 @@ class FakeModule:
         if key == "019":
             return {"fwUpdate": False, "localWeb": 1, "model": self.model}
         if key == "020":
-            return self._category(int(fields["category"]))
+            category = int(fields["category"])
+            if category in self.refused_categories:
+                return {"result": False}
+            return self._category(category)
         if key == "022":
             if not self.write_result:
                 return {"result": False}

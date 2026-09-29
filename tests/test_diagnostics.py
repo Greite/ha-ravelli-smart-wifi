@@ -64,10 +64,27 @@ async def test_diagnostics_of_an_unreachable_module(
 
     result = await async_get_config_entry_diagnostics(hass, init_integration)
 
-    assert result["error"] == "WinetConnectionError"
+    failed = {"error": "WinetConnectionError"}
     assert result["model"] == "AIR-RDS"
-    assert "system" not in result
+    assert result["system"] == failed
+    assert result["schedule"] == failed
+    assert result["categories"] == {str(number): failed for number in range(13)}
     assert HOST not in json.dumps(result, default=str)
+
+
+async def test_one_refused_category_keeps_the_others(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """A category the board refuses must not hide the rest of the download."""
+    fake_module.refused_categories.add(5)
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    assert result["categories"]["5"] == {"error": "WinetResponseError"}
+    assert [50, 22] in result["categories"]["2"]["params"]
+    assert [300, 1] in result["categories"]["0"]["params"]
+    assert result["system"]["fwVer"] == "0.51"
+    assert result["schedule"]["enabled"] is True
 
 
 async def test_diagnostics_keep_only_the_keys_support_needs(

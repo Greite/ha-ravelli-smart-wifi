@@ -253,14 +253,25 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         await self._async_command(command)
 
     async def async_read_diagnostics(self) -> dict[str, Any]:
-        """Read every register category, the status and the schedule."""
+        """Read every register category, the status and the schedule.
+
+        A request that fails gives the name of its error class in place of
+        its answer; the message can hold the address of the module.
+        """
+
+        async def read(request: Awaitable[dict[str, Any]]) -> dict[str, Any] | str:
+            try:
+                return await request
+            except WinetError as err:
+                return type(err).__name__
+
         async with self._lock:
             categories = {
-                str(category): await self.client.get_registers(category)
+                str(category): await read(self.client.get_registers(category))
                 for category in range(DIAGNOSTIC_CATEGORIES)
             }
             return {
-                "system": await self.client.get_status(),
+                "system": await read(self.client.get_status()),
                 "categories": categories,
-                "schedule": await self.client.get_schedule(),
+                "schedule": await read(self.client.get_schedule()),
             }
