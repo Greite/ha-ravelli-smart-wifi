@@ -1,10 +1,12 @@
 """Tests that keep the documentation in step with the code."""
 
+import json
 from pathlib import Path
 import re
 
 import pytest
 
+from custom_components.ravelli_smart_wifi.const import ISSUE_URL
 from custom_components.ravelli_smart_wifi.models import SUPPORTED_MODELS
 from custom_components.ravelli_smart_wifi.services import (
     SERVICE_DELETE_PROGRAM,
@@ -14,6 +16,11 @@ from custom_components.ravelli_smart_wifi.services import (
 ROOT = Path(__file__).parent.parent
 README = (ROOT / "README.md").read_text()
 CHECKLIST = (ROOT / "docs" / "hardware-verification.md").read_text()
+ENGLISH = json.loads(
+    (
+        ROOT / "custom_components" / "ravelli_smart_wifi" / "translations" / "en.json"
+    ).read_text()
+)
 PRIVATE_ADDRESS = re.compile(
     r"\b(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)\b"
 )
@@ -77,3 +84,29 @@ def test_checklist_reads_names_before_writing() -> None:
 def test_readme_explains_debug_logging() -> None:
     """The checklist needs the raw answers of the module."""
     assert "custom_components.ravelli_smart_wifi: debug" in README
+
+
+def test_troubleshooting_quotes_the_flow() -> None:
+    """A user searches the README for the text the flow showed."""
+    section = README.split("## Troubleshooting", 1)[1].split("\n#", 1)[0]
+    rows = re.findall(r"^\| (.+?) \| .+ \|$", section, re.MULTILINE)
+    messages = [row for row in rows if row not in ("Message", "---")]
+    flow = {
+        text.replace("{model}", "N").replace("{issue_url}", ISSUE_URL)
+        for text in (
+            *ENGLISH["config"]["error"].values(),
+            *ENGLISH["config"]["abort"].values(),
+        )
+    }
+    assert len(messages) == 3
+    for message in messages:
+        assert message in flow, message
+
+
+def test_readme_describes_every_entity() -> None:
+    """The table "What you get" and the state of the verification."""
+    assert 'Binary sensor "Flame"' in README
+    assert "7 to 41 °C" in README
+    assert '"External thermostat"' in README
+    assert "Reads verified on a real stove; commands not verified yet" in README
+    assert "Verified on a real stove |" not in README

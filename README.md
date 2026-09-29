@@ -16,7 +16,7 @@ board, not on the commercial name of the stove.
 
 | Board | Status |
 |---|---|
-| AIR-RDS | Verified on a real stove |
+| AIR-RDS | Reads verified on a real stove; commands not verified yet |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
 | Any other board | Refused at setup |
@@ -42,13 +42,14 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Entity | What it does |
 |---|---|
 | Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode, manual mode as preset, and what the stove is doing |
-| Thermostats "Ducting right" and "Ducting left" | Target and temperature of each ducted outlet. Disabled by default: enable them if your stove has ducting. AIR-RDS only |
+| Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
 | Sensor "Status" | Off, ignition, working, final cleaning, alarm and so on |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, and whether an alarm is active |
 | Sensors "Ambient temperature" and "Flue gas temperature" | In °C |
 | Sensor "Extractor speed" | Raw value, disabled by default until its scale is verified |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
+| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove |
@@ -153,9 +154,9 @@ list of points checked on a real stove and their results.
 
 | Message | Meaning |
 |---|---|
-| Nothing answers at this address | Wrong address, stove unplugged, or module not connected to the Wi-Fi |
-| A device answers, but it is not a Ravelli Smart Wi-Fi module | The address belongs to another device |
-| Stove model N is not supported yet | The board is not in the table above. Open an issue with the code N |
+| Nothing answers at this address. | Wrong address, stove unplugged, or module not connected to the Wi-Fi |
+| A device answers at this address, but it is not a Ravelli Smart Wi-Fi module. | The address belongs to another device |
+| Stove model N is not supported yet. Ask for it at https://github.com/Greite/ha-ravelli-smart-wifi/issues. | The board is not in the table above. Open an issue with the code N |
 
 The diagnostics download of the device holds every register of the stove.
 Network name, addresses and program names are removed from it.
