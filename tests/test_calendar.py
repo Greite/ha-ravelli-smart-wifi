@@ -219,3 +219,20 @@ async def test_calendar_follows_the_actions(
 
     assert len(found) == 8
     assert [event["summary"] for event in found].count("Morning") == 1
+
+
+@pytest.mark.parametrize("stop", [[1, 6, 0], [1, 22, 0]])
+async def test_program_that_ends_before_it_starts_is_skipped(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    fake_module: FakeModule,
+    stop: list[int],
+) -> None:
+    """A program stored from elsewhere must not break the calendar."""
+    fake_module.programs[1] = [1, 1, 22, 0, *stop, 20, 2, 127, "Night"]
+    await setup(hass, config_entry)
+
+    found = await events(hass)
+
+    assert len(found) == 7
+    assert {event["summary"] for event in found} == {"Evening"}

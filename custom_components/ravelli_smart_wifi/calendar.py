@@ -26,6 +26,9 @@ def _event(program: ScheduleProgram, day: date, zone: tzinfo) -> CalendarEvent |
         return None
     begin = datetime.combine(day, first, zone)
     if program.start is not None and program.end is not None:
+        if program.end <= program.start:
+            # Stored from elsewhere; the vendor UI refuses it as well.
+            return None
         finish = datetime.combine(day, program.end, zone)
         note = ""
     else:
