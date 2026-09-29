@@ -251,6 +251,9 @@
     "schedule_time_step": {
       "message": "Start and end times must fall on a quarter of an hour."
     },
+    "schedule_unreadable": {
+      "message": "The schedule stored in the stove cannot be read. Check the programs on the page of the module."
+    },
     "temperature_required": {
       "message": "Give a temperature, or turn the manual mode on."
     },

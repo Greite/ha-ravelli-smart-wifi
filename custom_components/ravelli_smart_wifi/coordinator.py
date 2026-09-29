@@ -50,7 +50,8 @@ class RavelliData:
 
     state: StoveState
     system: dict[str, Any]
-    schedule: Schedule
+    # None while the schedule cannot be read.
+    schedule: Schedule | None
 
 
 def _invalid(key: str, **placeholders: str) -> ServiceValidationError:
@@ -102,6 +103,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         self._system: dict[str, Any] = {}
         self._schedule: Schedule | None = None
         self._slow_read_at: datetime | None = None
+        self._slow_read_failed = False
         self._fast_steps: list[int] = []
 
     async def _async_update_data(self) -> RavelliData:
@@ -113,17 +115,12 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 ]
                 now = dt_util.utcnow()
                 if (
-                    self._schedule is None
-                    or self._slow_read_at is None
+                    self._slow_read_at is None
                     or (now - self._slow_read_at).total_seconds()
                     >= SLOW_REFRESH_INTERVAL
                 ):
-                    self._system = await self.client.get_status()
-                    self._schedule = Schedule.from_payload(
-                        await self.client.get_schedule()
-                    )
                     self._slow_read_at = now
-                schedule = self._schedule
+                    await self._async_slow_read()
             state = StoveState.from_payloads(payloads)
         except (WinetError, InvalidPayloadError) as err:
             raise UpdateFailed(str(err)) from err
@@ -133,7 +130,33 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 if self._fast_steps
                 else self._normal_interval
             )
-        return RavelliData(state=state, system=self._system, schedule=schedule)
+        return RavelliData(state=state, system=self._system, schedule=self._schedule)
+
+    async def _async_slow_read(self) -> None:
+        """Read the system status and the schedule, apart from the registers.
+
+        A failure only takes the schedule entities down; it is retried at the
+        next slow read and logged once until it is over.
+        """
+        try:
+            self._system = await self.client.get_status()
+            self._schedule = Schedule.from_payload(await self.client.get_schedule())
+        except (WinetError, InvalidPayloadError) as err:
+            self._schedule = None
+            if not self._slow_read_failed:
+                self._slow_read_failed = True
+                _LOGGER.warning("The schedule of the stove cannot be read: %s", err)
+            return
+        if self._slow_read_failed:
+            self._slow_read_failed = False
+            _LOGGER.info("The schedule of the stove can be read again")
+
+    async def _async_read_schedule(self) -> Schedule:
+        """Read the schedule for a command; an undecodable one stops it."""
+        try:
+            return Schedule.from_payload(await self.client.get_schedule())
+        except InvalidPayloadError as err:
+            raise _failed("schedule_unreadable") from err
 
     async def _async_command(self, command: Callable[[], Awaitable[None]]) -> None:
         """Run one command under the lock, then read the result back."""
@@ -213,7 +236,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         _check_slot(slot)
 
         async def command() -> None:
-            current = Schedule.from_payload(await self.client.get_schedule())
+            current = await self._async_read_schedule()
             if current.programs[slot - 1] is None:
                 self._schedule = current
                 return
@@ -228,7 +251,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         """Read the table, change it, write it and read it back."""
 
         async def command() -> None:
-            current = Schedule.from_payload(await self.client.get_schedule())
+            current = await self._async_read_schedule()
             wanted = change(current)
             await self.client.set_schedule(wanted.to_fields())
             await self._async_verify_schedule(wanted)
@@ -236,7 +259,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         await self._async_command(command)
 
     async def _async_verify_schedule(self, wanted: Schedule) -> None:
-        stored = Schedule.from_payload(await self.client.get_schedule())
+        stored = await self._async_read_schedule()
         self._schedule = stored
         if stored != wanted:
             raise _failed("schedule_mismatch")

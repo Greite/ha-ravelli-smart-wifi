@@ -251,6 +251,9 @@
     "schedule_time_step": {
       "message": "Les heures de début et de fin doivent tomber sur un quart d'heure."
     },
+    "schedule_unreadable": {
+      "message": "La programmation enregistrée dans le poêle ne peut pas être lue. Vérifiez les programmes sur la page du module."
+    },
     "temperature_required": {
       "message": "Indiquez une température, ou activez le mode manuel."
     },

@@ -32,9 +32,15 @@ class RavelliScheduleSwitch(RavelliEntity, SwitchEntity):
         super().__init__(coordinator, "schedule")
 
     @property
-    def is_on(self) -> bool:
+    def available(self) -> bool:
+        """Unavailable while the schedule cannot be read."""
+        return super().available and self.coordinator.data.schedule is not None
+
+    @property
+    def is_on(self) -> bool | None:
         """Return whether the stove follows its programs."""
-        return self.coordinator.data.schedule.enabled
+        schedule = self.coordinator.data.schedule
+        return None if schedule is None else schedule.enabled
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Make the stove follow its programs."""

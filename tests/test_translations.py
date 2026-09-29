@@ -28,6 +28,7 @@ EXCEPTIONS = {
     "schedule_slot_range",
     "schedule_temperature_range",
     "schedule_time_step",
+    "schedule_unreadable",
     "temperature_required",
     "turn_off_during_ignition",
     "turn_on_in_alarm",

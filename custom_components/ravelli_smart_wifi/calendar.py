@@ -87,14 +87,23 @@ class RavelliScheduleCalendar(RavelliEntity, CalendarEntity):
         super().__init__(coordinator, "schedule")
 
     @property
+    def available(self) -> bool:
+        """Unavailable while the schedule cannot be read."""
+        return super().available and self.coordinator.data.schedule is not None
+
+    def _events(self, start: datetime, end: datetime) -> list[CalendarEvent]:
+        schedule = self.coordinator.data.schedule
+        return [] if schedule is None else schedule_events(schedule, start, end)
+
+    @property
     def event(self) -> CalendarEvent | None:
         """Return the event under way, or the next one."""
         now = dt_util.now()
-        events = schedule_events(self.coordinator.data.schedule, now, now + LOOKAHEAD)
+        events = self._events(now, now + LOOKAHEAD)
         return events[0] if events else None
 
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
         """Return the events of a window."""
-        return schedule_events(self.coordinator.data.schedule, start_date, end_date)
+        return self._events(start_date, end_date)

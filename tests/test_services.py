@@ -1,7 +1,11 @@
 """Tests for the schedule actions."""
 
+import logging
 from typing import Any
 
+from freezegun.api import FrozenDateTimeFactory
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
@@ -12,6 +16,7 @@ import voluptuous as vol
 from custom_components.ravelli_smart_wifi.const import DOMAIN
 
 from .fake_module import FREE_PROGRAM, MAC, PATH_GET, FakeModule
+from .helpers import advance, entity_id_for
 
 EVENING_RAW = [1, 1, 18, 0, 1, 22, 2, 22, 1, 127, "Evening"]
 MORNING_RAW = [1, 1, 6, 2, 1, 8, 0, 21, 3, 31, "Morning"]
@@ -221,3 +226,60 @@ async def test_device_of_an_unloaded_entry(
         await set_program(hass, init_integration, device_id=device_id)
 
     assert err.value.translation_key == "device_not_found"
+
+
+BROKEN_RAW = [1, 1, 25, 0, 1, 22, 2, 22, 1, 127, "Broken"]
+
+
+async def test_unreadable_schedule_leaves_the_thermostat_up(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Only the schedule entities follow the schedule read."""
+    fake_module.programs[3] = list(BROKEN_RAW)
+
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert hass.states.get(entity_id_for(hass, "climate", "stove")).state == "off"
+    for platform in ("switch", "calendar"):
+        state = hass.states.get(entity_id_for(hass, platform, "schedule"))
+        assert state.state == STATE_UNAVAILABLE, platform
+    with pytest.raises(HomeAssistantError) as err:
+        await set_program(hass, config_entry)
+    assert err.value.translation_key == "schedule_unreadable"
+    with pytest.raises(HomeAssistantError) as err:
+        await delete_program(hass, config_entry, 1)
+    assert err.value.translation_key == "schedule_unreadable"
+    assert fake_module.count(PATH_GET, key="032") == 0
+    assert fake_module.count(PATH_GET, key="034") == 0
+
+    # Normal polls do not read the schedule again, and the failure is
+    # logged once.
+    reads = fake_module.count(PATH_GET, key="033")
+    for _ in range(3):
+        await advance(hass, freezer)
+    assert fake_module.count(PATH_GET, key="033") == reads
+    await advance(hass, freezer, 601)
+    assert fake_module.count(PATH_GET, key="033") == reads + 1
+    warnings = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno >= logging.WARNING
+    ]
+    assert sum("cannot be read" in message for message in warnings) == 1
+    assert not any("Broken" in message for message in warnings)
+    assert hass.states.get(entity_id_for(hass, "climate", "stove")).state == "off"
+
+    fake_module.programs[3] = list(FREE_PROGRAM)
+    await advance(hass, freezer, 601)
+
+    assert hass.states.get(entity_id_for(hass, "switch", "schedule")).state == "on"
+    assert hass.states.get(entity_id_for(hass, "calendar", "schedule")).state in (
+        "on",
+        "off",
+    )
