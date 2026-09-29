@@ -1,0 +1,58 @@
+{
+  "system": {
+    "status": 5,
+    "fwUpdate": false,
+    "apConnected": 0,
+    "lastDisconnectReason": 0,
+    "lastCloudError": 0,
+    "currentApIp": "192.0.2.1",
+    "currentIp": "192.0.2.10",
+    "currentMask": "255.255.255.0",
+    "currentGw": "192.0.2.254",
+    "inetTime": "2026-09-29 19:15",
+    "inetWeekDay": 2,
+    "client": 2,
+    "network": "example-network",
+    "signal": 3,
+    "rssi": -74,
+    "useTSense": 0,
+    "board": [7, 0, 0, 0],
+    "eNowDevs": [],
+    "show": 0,
+    "pairing": 0,
+    "timeout": 0,
+    "fwVer": "0.51",
+    "boot": 2
+  },
+  "common": { "2": 0, "3": 0, "37": 0 },
+  "categories": {
+    "0": { "300": 1, "301": 160 },
+    "2": { "0": 44, "4": 0, "5": 0, "50": 22, "51": 1 },
+    "4": { "59": 2, "60": 24, "61": 87, "62": 41, "63": 9, "64": 38 },
+    "6": { "24": 0, "25": 0, "184": 5, "185": 5 },
+    "11": { "73": 0, "74": 1 }
+  },
+  "extra": {
+    "localWeb": 1,
+    "authLevel": 0,
+    "signal": 3,
+    "flame": 255,
+    "chrono": 0,
+    "alr": "",
+    "name": "NO NAME",
+    "inetTime": [2026, 9, 29, 2, 18, 52],
+    "netatmo": [false, false, "", 0, 0],
+    "tsense": { "show": 0, "list": [] }
+  },
+  "schedule": {
+    "enabled": true,
+    "programs": [
+      [1, 1, 18, 0, 1, 22, 2, 22, 1, 127, "Evening"],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""]
+    ]
+  }
+}
