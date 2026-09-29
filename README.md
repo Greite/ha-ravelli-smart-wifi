@@ -176,7 +176,9 @@ logger:
 Each request then logs its path, the HTTP status and the answer of the module.
 The address of the module is never logged, and neither is the system status,
 which holds the network name. The other answers hold the name given to the
-stove and the names of the programs: remove them before you post a log.
+stove, the names of the programs, `netatmo` (a free text) and `tsense` (the
+MAC addresses of wireless probes): remove them before you post a log, or post
+the diagnostics download instead of a debug log.
 
 ## Development
 

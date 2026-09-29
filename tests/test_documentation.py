@@ -110,3 +110,10 @@ def test_readme_describes_every_entity() -> None:
     assert '"External thermostat"' in README
     assert "Reads verified on a real stove; commands not verified yet" in README
     assert "Verified on a real stove |" not in README
+
+
+def test_readme_debug_logging_warns_about_free_text_and_probe_addresses() -> None:
+    """The register answers are logged in full; the warning must name them."""
+    section = README.split("### Debug logging")[1].split("\n## ")[0]
+    for word in ("netatmo", "tsense"):
+        assert word in section
