@@ -138,12 +138,19 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
     async def _async_command(self, command: Callable[[], Awaitable[None]]) -> None:
         """Run one command under the lock, then read the result back."""
         try:
-            async with self._lock:
-                await command()
-        except WinetConnectionError as err:
-            raise _failed("cannot_connect") from err
-        except (WinetResponseError, InvalidPayloadError) as err:
-            raise _failed("command_refused") from err
+            try:
+                async with self._lock:
+                    await command()
+            except WinetConnectionError as err:
+                raise _failed("cannot_connect") from err
+            except (WinetResponseError, InvalidPayloadError) as err:
+                raise _failed("command_refused") from err
+        except HomeAssistantError:
+            # The command may have changed part of the stove: show what it
+            # holds now, schedule included, at the normal pace.
+            self._slow_read_at = None
+            await self.async_refresh()
+            raise
         self._fast_steps = list(FAST_REFRESH_STEPS)
         await self.async_refresh()
 
@@ -230,9 +237,9 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
     async def _async_verify_schedule(self, wanted: Schedule) -> None:
         stored = Schedule.from_payload(await self.client.get_schedule())
+        self._schedule = stored
         if stored != wanted:
             raise _failed("schedule_mismatch")
-        self._schedule = stored
 
     async def async_sync_clock(self) -> None:
         """Set the stove clock to the local time of Home Assistant."""

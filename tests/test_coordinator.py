@@ -495,3 +495,99 @@ async def test_diagnostics_read(
     assert [60, 24] in dump["categories"]["4"]["params"]
     assert dump["system"]["fwVer"] == "0.51"
     assert dump["schedule"]["programs"][0] == EVENING_RAW
+
+
+SUNDAY_RAW = [1, 1, 7, 0, 0, 0, 0, 20, 2, 64, "Sunday"]
+
+
+async def test_mismatch_keeps_the_table_the_module_holds(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """The read-back is shown, not the table from before the write."""
+    fake_module.programs[4] = list(SUNDAY_RAW)
+    fake_module.ignore_schedule_writes = True
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_program(2, MORNING)
+
+    assert err.value.translation_key == "schedule_mismatch"
+    assert coordinator.data.schedule.programs[4].name == "Sunday"
+    assert coordinator.data.schedule.programs[1] is None
+
+
+async def test_delete_mismatch_keeps_the_table_the_module_holds(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """The delete path checks the read-back too."""
+    fake_module.programs[4] = list(SUNDAY_RAW)
+    fake_module.ignore_schedule_writes = True
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_delete_program(1)
+
+    assert err.value.translation_key == "schedule_mismatch"
+    assert fake_module.count(PATH_GET, key="034", index="0") == 1
+    assert coordinator.data.schedule.programs[0].name == "Evening"
+    assert coordinator.data.schedule.programs[4].name == "Sunday"
+
+
+async def test_refused_schedule_write_shows_the_table_of_the_module(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """A refused write reads the table again at once."""
+    fake_module.programs[4] = list(SUNDAY_RAW)
+    fake_module.write_result = False
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_schedule_enabled(False)
+
+    assert err.value.translation_key == "command_refused"
+    assert coordinator.data.schedule.programs[4].name == "Sunday"
+    assert coordinator.data.schedule.enabled is True
+
+
+@pytest.mark.parametrize(
+    ("fault", "key"),
+    [("refused", "command_refused"), ("unreachable", "cannot_connect")],
+)
+async def test_failed_command_refreshes_at_the_normal_pace(
+    coordinator: RavelliCoordinator, fake_module: FakeModule, fault: str, key: str
+) -> None:
+    """The state is read again, without the fast polls of a command."""
+    if fault == "refused":
+        fake_module.write_result = False
+    else:
+        fake_module.error = aiohttp.ClientConnectionError()
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_write_register(50, 23)
+
+    assert err.value.translation_key == key
+    assert fake_module.count(PATH_GET, key="020", category="2") == 1
+    assert coordinator.update_interval == timedelta(seconds=30)
+
+
+async def test_refused_safety_rule_does_not_poll_faster(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """A command refused by a safety rule is a failed command too."""
+    fake_module.common[2] = 8
+
+    with pytest.raises(ServiceValidationError):
+        await coordinator.async_set_power(True)
+
+    assert coordinator.update_interval == timedelta(seconds=30)
+    assert coordinator.data.state.status_key == "alarm"
+
+
+async def test_turn_on_is_refused_in_alarm_memory(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """Status 9 is an alarm status as well."""
+    fake_module.common[2] = 9
+
+    with pytest.raises(ServiceValidationError) as err:
+        await coordinator.async_set_power(True)
+
+    assert err.value.translation_key == "turn_on_in_alarm"
+    assert fake_module.count(PATH_GET, key="022") == 0
