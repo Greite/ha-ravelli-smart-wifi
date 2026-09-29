@@ -104,6 +104,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         self._schedule: Schedule | None = None
         self._slow_read_at: datetime | None = None
         self._slow_read_failed = False
+        # Model code of the last register read; None before the first one.
+        self._reported_model: int | None = None
         self._fast_steps: list[int] = []
 
     async def _async_update_data(self) -> RavelliData:
@@ -113,6 +115,15 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                     await self.client.get_registers(category)
                     for category in self.model.categories
                 ]
+                state = StoveState.from_payloads(payloads)
+                self._reported_model = state.model
+                if state.model != self.model.code:
+                    # Nothing may be read or written with the wrong table.
+                    raise UpdateFailed(
+                        f"The module reports stove model {state.model}, but this "
+                        f"entry was set up for model {self.model.code} "
+                        f"({self.model.name}). Reconfigure the entry"
+                    )
                 now = dt_util.utcnow()
                 if (
                     self._slow_read_at is None
@@ -121,7 +132,6 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 ):
                     self._slow_read_at = now
                     await self._async_slow_read()
-            state = StoveState.from_payloads(payloads)
         except (WinetError, InvalidPayloadError) as err:
             raise UpdateFailed(str(err)) from err
         finally:
@@ -158,11 +168,24 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         except InvalidPayloadError as err:
             raise _failed("schedule_unreadable") from err
 
+    def _check_model(self, code: int | None) -> None:
+        """Refuse a command while the module reports another model."""
+        if code is not None and code != self.model.code:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="model_mismatch",
+                translation_placeholders={
+                    "model": str(code),
+                    "expected": str(self.model.code),
+                },
+            )
+
     async def _async_command(self, command: Callable[[], Awaitable[None]]) -> None:
         """Run one command under the lock, then read the result back."""
         try:
             try:
                 async with self._lock:
+                    self._check_model(self._reported_model)
                     await command()
             except WinetConnectionError as err:
                 raise _failed("cannot_connect") from err
@@ -200,6 +223,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             state = StoveState.from_payloads(
                 [await self.client.get_registers(CATEGORY_MAIN)]
             )
+            self._reported_model = state.model
+            self._check_model(state.model)
             if on:
                 if state.in_alarm:
                     raise _invalid("turn_on_in_alarm")

@@ -218,6 +218,9 @@
     "device_not_found": {
       "message": "L'appareil sélectionné n'est pas un poêle Ravelli configuré et chargé."
     },
+    "model_mismatch": {
+      "message": "Le module indique maintenant le modèle de poêle {model} au lieu du modèle {expected}. Reconfigurez l'intégration."
+    },
     "register_not_writable": {
       "message": "Le registre {register} ne peut pas être écrit sur ce modèle de poêle."
     },

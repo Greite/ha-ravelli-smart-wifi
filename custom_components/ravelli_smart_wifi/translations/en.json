@@ -218,6 +218,9 @@
     "device_not_found": {
       "message": "The selected device is not a Ravelli stove that is set up and loaded."
     },
+    "model_mismatch": {
+      "message": "The module now reports stove model {model} instead of model {expected}. Reconfigure the integration."
+    },
     "register_not_writable": {
       "message": "Register {register} cannot be written on this stove model."
     },

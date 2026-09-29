@@ -591,3 +591,47 @@ async def test_turn_on_is_refused_in_alarm_memory(
 
     assert err.value.translation_key == "turn_on_in_alarm"
     assert fake_module.count(PATH_GET, key="022") == 0
+
+
+async def test_poll_with_another_model_fails_the_update(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The register table of the entry no longer applies."""
+    fake_module.model = 11
+
+    await coordinator.async_refresh()
+
+    assert not coordinator.last_update_success
+    assert "model 11" in caplog.text
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_power(True)
+    assert err.value.translation_key == "model_mismatch"
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_schedule_enabled(False)
+    assert err.value.translation_key == "model_mismatch"
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_write_register(50, 23)
+    assert err.value.translation_key == "model_mismatch"
+    assert fake_module.count(PATH_GET, key="022") == 0
+    assert fake_module.count(PATH_GET, key="032") == 0
+    assert fake_module.count(PATH_SET) == 0
+
+    fake_module.model = 7
+    await coordinator.async_refresh()
+    assert coordinator.last_update_success
+
+
+async def test_turn_on_checks_the_model_read_at_command_time(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """A model change since the last poll stops the command too."""
+    fake_module.model = 12
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_power(True)
+
+    assert err.value.translation_key == "model_mismatch"
+    assert fake_module.count(PATH_GET, key="022") == 0
