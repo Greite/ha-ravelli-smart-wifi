@@ -24,8 +24,13 @@ board, not on the commercial name of the stove.
 To find your board, open `http://<address of the module>/` in a browser: the
 name is at the top of the page.
 
-If your board is refused, open an issue and attach the output of this command,
-after removing your network name from it:
+To report a problem with a stove that is set up, open an issue and attach the
+diagnostics download of the device: it is made for that, and personal data is
+removed from it.
+
+If your board is refused at setup, there is no device to download from. Open
+an issue and attach the output of this command, after removing the values of
+`name`, `netatmo` and `tsense` from it:
 
 ```bash
 curl -X POST -H "Content-Type: application/json; charset=utf-8" \

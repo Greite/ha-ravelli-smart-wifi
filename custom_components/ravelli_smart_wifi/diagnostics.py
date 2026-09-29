@@ -12,16 +12,43 @@ from .api import WinetError
 from .coordinator import RavelliConfigEntry
 
 REDACT_ENTRY = {CONF_HOST, CONF_MAC, "unique_id"}
-REDACT_SYSTEM = {
-    "network",
-    "currentIp",
-    "currentMask",
-    "currentGw",
-    "currentApIp",
-    "eNowDevs",
+# Only these keys are kept; every other key is redacted, so a key added by a
+# new firmware never comes out in clear.
+KEEP_SYSTEM = {
+    "status",
+    "fwUpdate",
+    "fwVer",
+    "boot",
+    "board",
+    "signal",
+    "rssi",
+    "client",
+    "useTSense",
+    "lastDisconnectReason",
+    "lastCloudError",
+    "apConnected",
+    "pairing",
+    "show",
+    "timeout",
 }
-REDACT_CATEGORY = {"name", "tsense"}
+KEEP_CATEGORY = {
+    "params",
+    "cat",
+    "model",
+    "flame",
+    "chrono",
+    "alr",
+    "signal",
+    "authLevel",
+    "localWeb",
+}
+KEEP_SCHEDULE = {"key", "enabled"}
 _NAME = 10
+
+
+def _keep(payload: dict[str, Any], keep: set[str]) -> dict[str, Any]:
+    """Redact every key that is not in the allow-list."""
+    return {key: value if key in keep else REDACTED for key, value in payload.items()}
 
 
 def _redact_schedule(schedule: dict[str, Any]) -> dict[str, Any]:
@@ -31,7 +58,7 @@ def _redact_schedule(schedule: dict[str, Any]) -> dict[str, Any]:
         for program in schedule.get("programs", [])
         if isinstance(program, list) and len(program) > _NAME
     ]
-    return {**schedule, "programs": programs}
+    return {**_keep(schedule, KEEP_SCHEDULE), "programs": programs}
 
 
 async def async_get_config_entry_diagnostics(
@@ -50,9 +77,9 @@ async def async_get_config_entry_diagnostics(
         return {**result, "error": type(err).__name__}
     return {
         **result,
-        "system": async_redact_data(raw["system"], REDACT_SYSTEM),
+        "system": _keep(raw["system"], KEEP_SYSTEM),
         "categories": {
-            category: async_redact_data(payload, REDACT_CATEGORY)
+            category: _keep(payload, KEEP_CATEGORY)
             for category, payload in raw["categories"].items()
         },
         "schedule": _redact_schedule(raw["schedule"]),

@@ -68,3 +68,55 @@ async def test_diagnostics_of_an_unreachable_module(
     assert result["model"] == "AIR-RDS"
     assert "system" not in result
     assert HOST not in json.dumps(result, default=str)
+
+
+async def test_diagnostics_keep_only_the_keys_support_needs(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Every key not known to be harmless is redacted, but still listed."""
+    fake_module.system.update(
+        {"mac": MAC, "ssid": "example-network", "hostname": "stove", "future": 1}
+    )
+    fake_module.extra["netatmo"] = [True, False, "home-token", 0, 0]
+    fake_module.extra["future"] = "unknown"
+    fake_module.schedule_enabled = True
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    system = result["system"]
+    for key in ("mac", "ssid", "hostname", "future", "inetTime", "network"):
+        assert system[key] == REDACTED, key
+    for key, value in {
+        "status": 5,
+        "fwUpdate": False,
+        "fwVer": "0.51",
+        "boot": 2,
+        "board": [7, 0, 0, 0],
+        "signal": 3,
+        "rssi": -74,
+        "client": 2,
+        "useTSense": 0,
+        "lastDisconnectReason": 0,
+        "lastCloudError": 0,
+        "apConnected": 0,
+        "pairing": 0,
+        "show": 0,
+        "timeout": 0,
+    }.items():
+        assert system[key] == value, key
+    category = result["categories"]["2"]
+    for key in ("netatmo", "future", "name", "tsense", "inetTime"):
+        assert category[key] == REDACTED, key
+    for key, value in {
+        "cat": 2,
+        "model": 7,
+        "flame": 255,
+        "chrono": 0,
+        "alr": "",
+        "signal": 3,
+        "authLevel": 0,
+        "localWeb": 1,
+    }.items():
+        assert category[key] == value, key
+    assert [50, 22] in category["params"]
+    assert "home-token" not in json.dumps(result, default=str)
