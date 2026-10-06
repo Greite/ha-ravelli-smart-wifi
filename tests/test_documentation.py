@@ -108,8 +108,33 @@ def test_readme_describes_every_entity() -> None:
     assert 'Binary sensor "Flame"' in README
     assert "7 to 41 °C" in README
     assert '"External thermostat"' in README
-    assert "Reads verified on a real stove; commands not verified yet" in README
-    assert "Verified on a real stove |" not in README
+    assert (
+        "| AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |"
+        in (README)
+    )
+    assert "| HYDRO-RDS | Written from the module's own web page, not tested |" in (
+        README
+    )
+    assert "| ECO-RDS | Written from the module's own web page, not tested |" in README
+    assert (
+        "Flue gas temperature"
+        not in README.split("## What you get")[1].split("\n## ")[0]
+    )
+    assert "revolutions per minute" in README
+
+
+def test_readme_says_what_the_hardware_sessions_showed() -> None:
+    """The behaviours of the stove a user would otherwise report as bugs."""
+    section = README.split("## What to know about the stove")[1].split("\n## ")[0]
+    for text in (
+        "restarts by itself",
+        "Modulation",
+        "Chargement excessif",
+        "flue gas temperature is not available",
+        "5, 8 and 9",
+        "seconds",
+    ):
+        assert text in section, text
 
 
 def test_readme_debug_logging_warns_about_free_text_and_probe_addresses() -> None:

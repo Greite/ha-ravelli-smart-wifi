@@ -16,7 +16,7 @@ board, not on the commercial name of the stove.
 
 | Board | Status |
 |---|---|
-| AIR-RDS | Reads verified on a real stove; commands not verified yet |
+| AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
 | Any other board | Refused at setup |
@@ -44,10 +44,10 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode, manual mode as preset, and what the stove is doing |
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
-| Sensor "Status" | Off, ignition, working, final cleaning, alarm and so on |
+| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, and whether an alarm is active |
-| Sensors "Ambient temperature" and "Flue gas temperature" | In °C |
-| Sensor "Extractor speed" | Raw value, disabled by default until its scale is verified |
+| Sensor "Ambient temperature" | In °C |
+| Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
 | Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it |
 | Binary sensor "Firmware update" | On when the module has an update to install |
@@ -144,6 +144,20 @@ data:
 
 A pellet stove is a combustion appliance. Do not start it remotely unless you
 know the room is safe and the stove is ready to run.
+
+## What to know about the stove
+
+- With the comfort climate on, the stove goes to eco stop when the room
+  reaches the target, and **restarts by itself** when the room cools down.
+  Turning the thermostat off in Home Assistant takes it out of eco stop.
+- The module does not tell "Travail" from "Modulation": both show as
+  working.
+- The module does not send the messages of the display of the stove, such
+  as "Chargement excessif". Home Assistant cannot show them.
+- The flue gas temperature is not available through the module.
+- The status codes 5, 8 and 9 were never seen on a real stove. They show as
+  unknown, and an alarm is still reported by the alarm sensors.
+- The clock is set to the minute: the module has no seconds.
 
 ## What is not verified yet
 

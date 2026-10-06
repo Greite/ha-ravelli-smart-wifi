@@ -37,8 +37,8 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 |---|---|---|
 | On and off | Turn the thermostat on, wait for the status "Working", turn it off | The stove ignites. The status goes through ignition, working, final cleaning, off. Note every status code seen in the attribute `raw_value` |
 | Turn-off rule | Turn the thermostat off right after turning it on | If the stove reports a flame value, the command is refused with the ignition message |
-| Flue gas temperature | Compare the sensor with the value on the display of the stove, stove working | Same value |
-| Extractor speed | Enable the sensor. Compare its raw value with the speed on the display of the stove | A constant ratio between the two |
+| Flue gas temperature | The integration has no sensor for it. Stove working, compare register 4 in the raw answer of category 2 with the value on the display of the stove | Note whether register 4 holds the value |
+| Extractor speed | Compare the sensor with the speed on the display of the stove | Same value, in revolutions per minute |
 | Manual mode | Choose the preset "Manual" | The display of the stove shows its manual mode. Choosing "None" restores the previous target |
 | Schedule, names | On the page of the module, create a program whose name holds an accented letter, then read the schedule with the command above | Note whether the name comes back unchanged |
 | Schedule, write | Store a program in slot 6 with the action, then open the page of the module | The program is there, with the right times, days, temperature and power. The other programs are unchanged |
