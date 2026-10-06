@@ -95,8 +95,9 @@ A category read returns:
  "chrono": 0, "alr": "", "name": "NO NAME", "authLevel": 0}
 ```
 
-`params` is a list of `[register, raw value]` pairs. A successful write
-returns `{"result": true}`.
+`params` is a list of `[register, raw value]` pairs. Every command, a
+register write, on and off (`key=022`), a schedule write (`key=032`) and a
+program delete (`key=034`), returns `{"result": true}`.
 
 System status returns, among others, `fwVer` (string), `rssi` (dBm),
 `signal` (0 to 4), `fwUpdate` (bool), `board` (list whose first item is the
@@ -111,13 +112,13 @@ are never stored in fixtures or diagnostics unredacted.
 | 1 | 2 | Water temperature (model 11) | raw °C, unverified | read |
 | 2 | all | Stove status | code, table below | read |
 | 3 | all | Alarm code | raw, 0 means none | read |
-| 4 | 2 | Flue gas temperature | raw °C, scale unverified | read |
-| 5 | 2 | Extractor speed | raw, scale unverified | read |
+| 4 | 2 | Flue gas temperature | not populated by the module: stays at 0 while the display shows the value | not read |
+| 5 | 2 | Extractor speed | rpm = raw × 10 + 250, 0 when stopped, verified | read |
 | 24, 25 | 6 | Ducting temperature right, left | raw °C, unverified | read |
 | 49 | 2 | Water set point (model 11) | 30 to 80 °C, 81 = manual, unverified | read/write |
 | 50 | 2 | Ambient set point | 5 to 40 °C, 41 = manual | read/write |
 | 51 | 2 | Power level | 1 to 5 | read/write |
-| 59 to 64 | 4 | Clock: weekday, hour, minute, day, month, year | weekday 1 to 7 (1 = Monday), others BCD, year is two digits | read/write |
+| 59 to 64 | 4 | Clock: weekday, hour, minute, day, month, year | weekday 1 to 7 (1 = Monday), others BCD, year is two digits; there is no seconds register | read/write |
 | 73 | 11 | Comfort climate delay | 0 to 9 min, 0 = off | read/write |
 | 74 | 11 | Comfort climate delta | 0 to 20 °C, 0 = off | read/write |
 | 184, 185 | 6 | Ducting set point right, left | 5 = off, 6 = external thermostat, 7 to 41 °C | read/write |
@@ -130,21 +131,26 @@ Ducting (category 6) applies to model 7 only, as in the vendor UI.
 
 ### Status codes, RDS family
 
-| Code | Key | Home Assistant `hvac_action` |
-|---|---|---|
-| 0 | `off` | off |
-| 1 | `pellet_loading` | preheating |
-| 2 | `ignition` | preheating |
-| 3 | `waiting_flame` | preheating |
-| 4 | `flame_present` | preheating |
-| 5 | `working` | heating |
-| 6 | `final_cleaning` | off |
-| 7 | `eco_stop` | idle |
-| 8 | `alarm` | off |
-| 9 | `alarm_memory` | off |
+Read on the display of the stove at each change of the code. The table of
+the vendor UI is wrong for the codes 1 to 4 on this board.
 
-Any other code gives the Home Assistant `unknown` state, with the raw code
-exposed as an attribute.
+| Code | Display of the stove | Key | Home Assistant `hvac_action` |
+|---|---|---|---|
+| 0 | Eteint | `off` | off |
+| 1 | Allumage | `ignition` | preheating |
+| 2 | Attente flamme | `waiting_flame` | preheating |
+| 3 | Flamme présente | `flame_present` | preheating |
+| 4 | Travail, and also Modulation | `working` | heating |
+| 5 | not seen on hardware | none | none |
+| 6 | Nettoyage final | `final_cleaning` | off |
+| 7 | Eco stop | `eco_stop` | idle |
+| 8 | not seen on hardware; "alarm" in the vendor UI | none | none |
+| 9 | not seen on hardware; "alarm memory" in the vendor UI | none | none |
+
+Any code without a key gives the Home Assistant `unknown` state, with the raw
+code exposed as an attribute. The stove counts as on for every code except
+0, 6, 8 and 9, so an unknown code shows as heat and an off command is still
+sent.
 
 ### Schedule
 
@@ -160,7 +166,7 @@ Read format, one list per program:
 
 - `start_quarter` and `stop_quarter` are 0 to 3, in units of 15 minutes.
 - `days_mask` bit 0 is Monday, bit 6 is Sunday.
-- `name` is at most 15 characters.
+- `name` is at most 15 characters. Accented letters are stored unchanged.
 - A slot is free when `set_power` is 0, `enabled` is greater than 1 or the
   name is empty. This is the test the vendor UI applies.
 - `set_temp` is 5 to 40, or 41 for manual. `set_power` is 1 to 5.
@@ -172,7 +178,7 @@ each `(enabled << 7) | (hour << 2) | quarter`), `p0N4` (temperature), `p0N5`
 Free slots are omitted. The global enable flag has no endpoint of its own:
 toggling it writes the whole table.
 
-The write path has not been exercised on real hardware yet.
+The write path, the global flag included, was verified on real hardware.
 
 ## 4. Architecture
 
@@ -218,11 +224,10 @@ default" are created disabled in the entity registry.
 | climate | Stove | status, registers 0, 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. |
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. |
 | climate | Water | registers 49, 1 | Model 11 only. Target 30 to 80 °C. |
-| sensor | Status | register 2 | Enum of the 10 keys; `unknown` state for any other code; attribute `raw_value`. |
+| sensor | Status | register 2 | Enum of the 7 keys; `unknown` state for any other code; attribute `raw_value`. |
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text, or `none`; attribute `raw_value`. |
 | sensor | Ambient temperature | register 0 | °C, measurement. |
-| sensor | Flue gas temperature | register 4 | °C, measurement. |
-| sensor | Extractor speed | register 5 | Raw value with no unit until the scale is verified on hardware; off by default until then. |
+| sensor | Extractor speed | register 5 | rpm, measurement, enabled by default. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9, or register 3 non-zero | Device class `problem`. |
 | binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. |
@@ -271,13 +276,10 @@ Errors: `cannot_connect`, `not_winet` (answers, but not this API),
 `manifest.json` declares `registered_devices: true`, so Home Assistant
 updates the host by itself when a known module changes address.
 
-Discovery of new modules needs a hostname matcher. The hostname the module
-announces over DHCP is not known yet. The rule is:
-
-- If the announced hostname is specific to the module, the manifest gets a
-  matcher on it, and the DHCP step probes the host before offering it.
-- If the hostname is generic, no matcher for new devices is declared and the
-  network scan is the only discovery path.
+The module announces `WINET-` followed by eight hexadecimal digits. The
+manifest also declares the matcher `hostname: winet-*`. Modules of other
+brands share the prefix, so the DHCP step probes the host before offering it
+and aborts for any other board.
 
 ### Reconfigure and options
 
@@ -303,8 +305,10 @@ Safety rules:
   rules below never rely on a state that is up to 30 seconds old.
 - Turning off is refused while the stove is igniting and the module reports
   no flame (`flame == 0`), as the vendor UI does.
-- Turning on is refused while the status is `alarm` or `alarm_memory`.
-  Turning off in those states is allowed and acknowledges the alarm.
+- Turning on is refused while the status code is 8 or 9, or the alarm
+  register (3) is not 0. Turning off in those states is allowed and
+  acknowledges the alarm.
+- Igniting means the status codes 1, 2 and 3.
 - Writes are never retried automatically.
 - Schedule writes read the table, change it, write it, read it back and
   raise if the result differs.
@@ -322,7 +326,7 @@ Both actions target the integration's device.
 | Field | Type | Rule |
 |---|---|---|
 | `slot` | 1 to 6 | required |
-| `name` | text | required, 1 to 15 printable ASCII characters |
+| `name` | text | required, 1 to 15 printable characters |
 | `enabled` | bool | default true |
 | `start` | time | optional, minutes must be 0, 15, 30 or 45 |
 | `end` | time | optional, same rule |
@@ -413,3 +417,9 @@ release:
 | On and off commands | Fresh read of the stove state before the safety rules | The polled state can be 30 seconds old |
 | Minimum Home Assistant version | 2026.9.0 | Only tested version |
 | Calendar descriptions | In French when Home Assistant is in French, in English otherwise | Asked by the owner after the final review |
+| Status codes | Table read on the display: 1 to 4 are ignition, waiting for the flame, flame present, working; 5, 8 and 9 have no key; igniting is 1 to 3; on is every code but 0, 6, 8 and 9; turning on is also refused for a non-zero alarm register | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Flue gas temperature | Sensor removed | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Extractor speed | rpm = raw × 10 + 250, enabled by default | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Program names | Any printable character, control characters refused | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Command answers | On and off, schedule write and program delete require `result: true` | Hardware verification, 2026-09-29 and 2026-10-06 |
+| DHCP discovery | Matcher `hostname: winet-*` | Hardware verification, 2026-09-29 and 2026-10-06 |
