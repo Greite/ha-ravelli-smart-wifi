@@ -210,3 +210,7 @@ is needed.
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+The Ravelli name and logo are trademarks of their owner. The images in
+`custom_components/ravelli_smart_wifi/brand/` only identify the brand of the
+stove in Home Assistant; the licence above does not cover them.

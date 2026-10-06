@@ -436,3 +436,4 @@ Not verified:
 | Command answers | On and off, schedule write and program delete require `result: true` | Hardware verification, 2026-09-29 and 2026-10-06 |
 | DHCP discovery | Matcher `hostname: winet-*` | Hardware verification, 2026-09-29 and 2026-10-06 |
 | Off command with an alarm reported | Sent even when the stove is stopped | The on command is refused in that state; without it Home Assistant had no way out |
+| Brand images | Shipped in the `brand` folder of the integration: icon, logo and a dark logo, each in two sizes | Asked by the owner after the installation; Home Assistant reads this folder for custom integrations |
