@@ -248,11 +248,13 @@ def test_with_enabled_keeps_the_programs() -> None:
         replace(EVENING, enabled=False, start=None, end=None),
         replace(EVENING, name="A & B = C"),
         replace(EVENING, name="x" * 15),
+        replace(EVENING, name="Café"),
+        replace(EVENING, name="Été à Noël"),
         replace(EVENING, weekdays=frozenset({"sun"})),
     ],
 )
 def test_valid_programs_pass(program: ScheduleProgram) -> None:
-    """Separators of the form encoding are allowed in a name."""
+    """Separators of the form encoding and accents are allowed in a name."""
     program.validate()
 
 
@@ -262,8 +264,10 @@ def test_valid_programs_pass(program: ScheduleProgram) -> None:
         ({"name": ""}, "name_length"),
         ({"name": "   "}, "name_length"),
         ({"name": "x" * 16}, "name_length"),
-        ({"name": "Café"}, "name_characters"),
+        ({"name": "x" * 15 + "é"}, "name_length"),
         ({"name": "a\tb"}, "name_characters"),
+        ({"name": "a\nb"}, "name_characters"),
+        ({"name": "a\x7fb"}, "name_characters"),
         ({"start": time(18, 10)}, "time_step"),
         ({"end": time(22, 30, 5)}, "time_step"),
         ({"end": time(18, 0)}, "end_before_start"),

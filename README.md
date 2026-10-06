@@ -111,7 +111,7 @@ data:
 | Field | Rule |
 |---|---|
 | `slot` | 1 to 6. A used slot is replaced |
-| `name` | 1 to 15 characters, without accents |
+| `name` | 1 to 15 characters. Accented letters are kept; control characters, such as a tab, are refused |
 | `enabled` | Optional, true by default |
 | `start`, `end` | Optional, on a quarter of an hour. Give one of them at least. `end` must be later than `start` |
 | `temperature` | 5 to 40 °C. Not needed when `manual` is true |

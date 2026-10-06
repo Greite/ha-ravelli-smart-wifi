@@ -397,6 +397,18 @@ async def test_set_program_keeps_the_other_slots(
     assert coordinator.data.schedule.programs[1] == MORNING
 
 
+async def test_set_program_keeps_an_accented_name(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """The module stores accented letters unchanged."""
+    program = replace(MORNING, name="Matinée")
+
+    await coordinator.async_set_program(2, program)
+
+    assert fake_module.programs[1] == [*MORNING_RAW[:10], "Matinée"]
+    assert coordinator.data.schedule.programs[1] == program
+
+
 async def test_set_program_uses_the_table_of_the_module(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:

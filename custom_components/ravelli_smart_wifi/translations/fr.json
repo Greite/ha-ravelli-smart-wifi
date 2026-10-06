@@ -228,7 +228,7 @@
       "message": "Le module n'a pas enregistré la programmation telle qu'elle a été envoyée. Vérifiez les programmes sur le module."
     },
     "schedule_name_characters": {
-      "message": "Le nom du programme ne peut contenir que des lettres sans accent, des chiffres, des espaces et la ponctuation courante."
+      "message": "Le nom du programme ne peut pas contenir de caractère de contrôle, comme une tabulation ou un saut de ligne."
     },
     "schedule_name_length": {
       "message": "Le nom du programme doit contenir de 1 à 15 caractères."
@@ -307,7 +307,7 @@
         },
         "name": {
           "name": "Nom",
-          "description": "Nom du programme, de 1 à 15 caractères, sans accent."
+          "description": "Nom du programme, de 1 à 15 caractères."
         },
         "power": {
           "name": "Puissance",

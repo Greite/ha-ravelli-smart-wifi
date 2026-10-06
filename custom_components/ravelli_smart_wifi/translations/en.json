@@ -228,7 +228,7 @@
       "message": "The module did not store the schedule as it was sent. Check the programs on the module."
     },
     "schedule_name_characters": {
-      "message": "The program name can only hold unaccented letters, digits, spaces and common punctuation."
+      "message": "The program name cannot hold control characters, such as a tab or a line break."
     },
     "schedule_name_length": {
       "message": "The program name must hold 1 to 15 characters."
@@ -307,7 +307,7 @@
         },
         "name": {
           "name": "Name",
-          "description": "Name of the program, 1 to 15 characters, without accents."
+          "description": "Name of the program, 1 to 15 characters."
         },
         "power": {
           "name": "Power level",

@@ -101,6 +101,7 @@ async def test_replacing_a_program(
         ({"manual": True}, [1, 1, 6, 2, 1, 8, 0, 41, 3, 31, "Morning"]),
         ({"weekdays": "sun"}, [1, 1, 6, 2, 1, 8, 0, 21, 3, 64, "Morning"]),
         ({"name": "A & B = C"}, [1, 1, 6, 2, 1, 8, 0, 21, 3, 31, "A & B = C"]),
+        ({"name": "Café"}, [1, 1, 6, 2, 1, 8, 0, 21, 3, 31, "Café"]),
     ],
 )
 async def test_program_variants(
@@ -121,7 +122,7 @@ async def test_program_variants(
     ("changes", "key"),
     [
         ({"temperature": None}, "temperature_required"),
-        ({"name": "Café"}, "schedule_name_characters"),
+        ({"name": "a\tb"}, "schedule_name_characters"),
         ({"end": "06:30:00"}, "schedule_end_before_start"),
         ({"end": "06:00:00"}, "schedule_end_before_start"),
         ({"start": "06:10:00"}, "schedule_time_step"),

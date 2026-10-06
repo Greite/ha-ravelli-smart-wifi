@@ -420,7 +420,8 @@ class ScheduleProgram:
         """Apply the rules the vendor UI applies before saving."""
         if not self.name.strip() or len(self.name) > NAME_MAX_LENGTH:
             raise ScheduleValidationError("name_length")
-        if any(not " " <= char <= "~" for char in self.name):
+        # Accented letters come back unchanged from the module.
+        if not self.name.isprintable():
             raise ScheduleValidationError("name_characters")
         for moment in (self.start, self.end):
             if moment is not None and (
