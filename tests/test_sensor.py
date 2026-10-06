@@ -65,12 +65,11 @@ async def test_there_is_no_flue_gas_temperature(
     )
 
 
-@pytest.mark.parametrize("key", ["extractor_speed", "wifi_signal"])
-async def test_sensors_that_are_off_by_default(
-    hass: HomeAssistant, init_integration: MockConfigEntry, key: str
+async def test_wifi_signal_is_off_by_default(
+    hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-    """They exist in the registry, disabled, and have no state."""
-    entity_id = entity_id_for(hass, "sensor", key)
+    """It exists in the registry, disabled, and has no state."""
+    entity_id = entity_id_for(hass, "sensor", "wifi_signal")
 
     entry = er.async_get(hass).async_get(entity_id)
     assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
@@ -81,11 +80,7 @@ async def test_sensors_that_are_off_by_default(
 async def test_sensors_once_enabled(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-    """The extractor has no unit yet; the signal is in dBm."""
-    extractor = hass.states.get(entity_id_for(hass, "sensor", "extractor_speed"))
-    assert extractor.state == "0"
-    assert "unit_of_measurement" not in extractor.attributes
-
+    """The signal is in dBm."""
     signal_id = entity_id_for(hass, "sensor", "wifi_signal")
     signal = hass.states.get(signal_id)
     assert signal.state == "-74"
@@ -110,6 +105,28 @@ async def test_status_follows_the_stove(
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "working"
     ambient = hass.states.get(entity_id_for(hass, "sensor", "ambient_temperature"))
     assert ambient.state == "21.5"
+
+
+async def test_extractor_speed(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Enabled by default, in revolutions per minute."""
+    entity_id = entity_id_for(hass, "sensor", "extractor_speed")
+    extractor = hass.states.get(entity_id)
+    assert extractor.state == "0"
+    assert extractor.attributes["unit_of_measurement"] == "rpm"
+    assert extractor.attributes["state_class"] == "measurement"
+
+    fake_module.categories[2][5] = 101
+    await advance(hass, freezer)
+    assert hass.states.get(entity_id).state == "1260"
+
+    del fake_module.categories[2][5]
+    await advance(hass, freezer)
+    assert hass.states.get(entity_id).state == STATE_UNKNOWN
 
 
 @pytest.mark.parametrize("code", [5, 8, 9, 42])

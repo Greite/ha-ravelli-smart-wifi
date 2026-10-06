@@ -283,8 +283,10 @@ class StoveState:
 
     @property
     def extractor_speed(self) -> int | None:
-        """Extractor speed, raw."""
-        return self.raw(REG_EXTRACTOR)
+        """Extractor speed in revolutions per minute, 0 when stopped."""
+        raw = self.raw(REG_EXTRACTOR)
+        # Verified on hardware against the display of the stove.
+        return raw * 10 + 250 if raw else raw
 
     @property
     def water_temperature(self) -> int | None:

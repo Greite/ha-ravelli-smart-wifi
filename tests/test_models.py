@@ -126,6 +126,14 @@ def test_missing_registers_give_none() -> None:
     assert decoded.water_setpoint is None
 
 
+@pytest.mark.parametrize(
+    ("raw", "rpm"), [(101, 1260), (131, 1560), (253, 2780), (0, 0)]
+)
+def test_extractor_speed_in_revolutions_per_minute(raw: int, rpm: int) -> None:
+    """Readings of a real stove: rpm = raw x 10 + 250, and 0 when stopped."""
+    assert state({2: 4, 5: raw}).extractor_speed == rpm
+
+
 def test_zero_ambient_temperature_means_no_reading() -> None:
     """The vendor UI shows dashes for a raw value of 0."""
     assert state({2: 0, 0: 0}).ambient_temperature is None

@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    REVOLUTIONS_PER_MINUTE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
     UnitOfTemperature,
@@ -71,11 +72,10 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
         suggested_display_precision=1,
         value_fn=lambda data: data.state.ambient_temperature,
     ),
-    # The scale of this register is not verified: raw value, no unit.
     RavelliSensorDescription(
         key="extractor_speed",
+        native_unit_of_measurement=REVOLUTIONS_PER_MINUTE,
         state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
         value_fn=lambda data: data.state.extractor_speed,
     ),
     RavelliSensorDescription(
