@@ -174,6 +174,25 @@ async def test_refused_commands(
 
 
 @pytest.mark.parametrize(
+    "command",
+    [
+        lambda client: client.set_power(True),
+        lambda client: client.set_schedule({"enabled": 1}),
+        lambda client: client.delete_program(0),
+    ],
+    ids=["set_power", "set_schedule", "delete_program"],
+)
+async def test_commands_need_a_positive_answer(
+    client: WinetClient, fake_module: FakeModule, command: Any
+) -> None:
+    """The module confirms every command with result true, like a write."""
+    fake_module.raw_answers[PATH_GET] = "{}"
+
+    with pytest.raises(WinetResponseError):
+        await command(client)
+
+
+@pytest.mark.parametrize(
     "error", [aiohttp.ClientConnectionError(), TimeoutError(), aiohttp.ClientOSError()]
 )
 async def test_unreachable_module(

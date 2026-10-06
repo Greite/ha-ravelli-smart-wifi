@@ -94,6 +94,14 @@ class WinetClient:
             raise WinetResponseError(f"the module refused the request to {path}")
         return payload
 
+    async def _command(self, path: str, fields: Mapping[str, Any]) -> None:
+        """Send a command; the module confirms each one with result true."""
+        payload = await self._post(path, fields)
+        if payload.get("result") is not True:
+            raise WinetResponseError(
+                f"the module did not confirm the request to {path}"
+            )
+
     async def get_status(self) -> dict[str, Any]:
         """Read the system status: firmware, signal, network."""
         return await self._post(PATH_STATUS)
@@ -108,7 +116,7 @@ class WinetClient:
 
     async def set_register(self, register: int, value: int) -> None:
         """Write one register."""
-        payload = await self._post(
+        await self._command(
             PATH_SET,
             {
                 "key": "002",
@@ -118,12 +126,10 @@ class WinetClient:
                 "result": "false",
             },
         )
-        if payload.get("result") is not True:
-            raise WinetResponseError("the module did not confirm the write")
 
     async def set_power(self, on: bool) -> None:
         """Turn the stove on or off."""
-        await self._post(PATH_GET, {"key": "022", "status": int(on)})
+        await self._command(PATH_GET, {"key": "022", "status": int(on)})
 
     async def get_schedule(self) -> dict[str, Any]:
         """Read the six programs and the global switch."""
@@ -131,8 +137,8 @@ class WinetClient:
 
     async def set_schedule(self, fields: Mapping[str, int | str]) -> None:
         """Write the whole schedule table."""
-        await self._post(PATH_GET, {**fields, "key": "032"})
+        await self._command(PATH_GET, {**fields, "key": "032"})
 
     async def delete_program(self, index: int) -> None:
         """Free one program slot, 0 to 5."""
-        await self._post(PATH_GET, {"key": "034", "index": index})
+        await self._command(PATH_GET, {"key": "034", "index": index})
