@@ -161,7 +161,7 @@ async def test_turn_off_does_not_wait_for_the_download(
 ) -> None:
     """A turn-off starts after one request of the download, not after all."""
     coordinator = init_integration.runtime_data
-    fake_module.common[2] = 5
+    fake_module.common[2] = 4
     fake_module.delay = 0.02
     before = len(fake_module.requests)
 

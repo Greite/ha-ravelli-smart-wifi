@@ -121,7 +121,7 @@ class FakeModule:
         if key == "022":
             if not self.write_result:
                 return {"result": False}
-            self.common[2] = 2 if fields["status"] == "1" else 0
+            self.common[2] = 1 if fields["status"] == "1" else 0
             return {"result": True}
         if key == "033":
             return {

@@ -56,13 +56,13 @@ async def test_thermostat_of_an_idle_stove(
         (1, "heat", "preheating"),
         (2, "heat", "preheating"),
         (3, "heat", "preheating"),
-        (4, "heat", "preheating"),
-        (5, "heat", "heating"),
+        (4, "heat", "heating"),
+        (5, "heat", None),
         (6, "off", "off"),
         (7, "heat", "idle"),
-        (8, "off", "off"),
-        (9, "off", "off"),
-        (42, "off", None),
+        (8, "off", None),
+        (9, "off", None),
+        (42, "heat", None),
     ],
 )
 async def test_mode_and_action_follow_the_status(
@@ -207,7 +207,7 @@ async def test_turn_off(
     data: dict[str, str],
 ) -> None:
     """A working stove can be turned off."""
-    fake_module.common[2] = 5
+    fake_module.common[2] = 4
     await advance(hass, freezer)
 
     await call(hass, action, **data)
@@ -230,11 +230,16 @@ async def test_turn_off_is_refused_during_ignition(
     assert fake_module.count(PATH_GET, key="022") == 0
 
 
+@pytest.mark.parametrize(("status", "alarm_code"), [(8, 0), (9, 0), (0, 5)])
 async def test_turn_on_is_refused_in_alarm(
-    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    status: int,
+    alarm_code: int,
 ) -> None:
     """The message tells the user to acknowledge the alarm first."""
-    fake_module.common[2] = 8
+    fake_module.common.update({2: status, 3: alarm_code})
 
     with pytest.raises(ServiceValidationError) as err:
         await call(hass, "turn_on")

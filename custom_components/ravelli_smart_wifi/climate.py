@@ -47,12 +47,9 @@ HVAC_ACTIONS: dict[int, HVACAction] = {
     1: HVACAction.PREHEATING,
     2: HVACAction.PREHEATING,
     3: HVACAction.PREHEATING,
-    4: HVACAction.PREHEATING,
-    5: HVACAction.HEATING,
+    4: HVACAction.HEATING,
     6: HVACAction.OFF,
     7: HVACAction.IDLE,
-    8: HVACAction.OFF,
-    9: HVACAction.OFF,
 }
 
 

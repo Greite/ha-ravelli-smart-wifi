@@ -55,15 +55,12 @@ ENTITIES = {
 }
 STATUS_STATES = {
     "off",
-    "pellet_loading",
     "ignition",
     "waiting_flame",
     "flame_present",
     "working",
     "final_cleaning",
     "eco_stop",
-    "alarm",
-    "alarm_memory",
 }
 
 
@@ -112,7 +109,7 @@ def test_every_entity_has_a_name(platform: str) -> None:
 
 
 def test_every_status_has_a_label() -> None:
-    """The ten status keys of the register model."""
+    """The seven status keys verified on hardware."""
     assert set(ENGLISH["entity"]["sensor"]["status"]["state"]) == STATUS_STATES
 
 

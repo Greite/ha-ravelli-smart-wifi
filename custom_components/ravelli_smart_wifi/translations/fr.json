@@ -187,15 +187,12 @@
         "name": "État",
         "state": {
           "off": "Éteint",
-          "pellet_loading": "Chargement des granulés",
           "ignition": "Allumage",
-          "waiting_flame": "Attente de la flamme",
+          "waiting_flame": "Attente flamme",
           "flame_present": "Flamme présente",
-          "working": "En chauffe",
+          "working": "Travail",
           "final_cleaning": "Nettoyage final",
-          "eco_stop": "Eco stop",
-          "alarm": "Alarme",
-          "alarm_memory": "Alarme mémorisée"
+          "eco_stop": "Eco stop"
         }
       },
       "wifi_signal": {

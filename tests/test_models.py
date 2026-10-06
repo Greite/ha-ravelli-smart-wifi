@@ -64,7 +64,7 @@ def test_categories_are_merged_and_the_last_answer_wins() -> None:
         [
             payload(MAIN),
             payload([[2, 0], [24, 0], [25, 19], [184, 5], [185, 22]]),
-            payload([[2, 5], [73, 0], [74, 1]], flame=1, alr=" AL05 NO IGNITION "),
+            payload([[2, 4], [73, 0], [74, 1]], flame=1, alr=" AL05 NO IGNITION "),
         ]
     )
 
@@ -80,16 +80,18 @@ def test_categories_are_merged_and_the_last_answer_wins() -> None:
     ("code", "key", "is_on", "is_igniting", "in_alarm"),
     [
         (0, "off", False, False, False),
-        (1, "pellet_loading", True, True, False),
-        (2, "ignition", True, True, False),
-        (3, "waiting_flame", True, True, False),
-        (4, "flame_present", True, True, False),
-        (5, "working", True, False, False),
+        (1, "ignition", True, True, False),
+        (2, "waiting_flame", True, True, False),
+        (3, "flame_present", True, True, False),
+        (4, "working", True, False, False),
+        # Never seen on hardware: no key, and on is the safe side.
+        (5, "unknown", True, False, False),
         (6, "final_cleaning", False, False, False),
         (7, "eco_stop", True, False, False),
-        (8, "alarm", False, False, True),
-        (9, "alarm_memory", False, False, True),
-        (42, "unknown", False, False, False),
+        # Never seen on hardware: no key, but turning on is refused.
+        (8, "unknown", False, False, True),
+        (9, "unknown", False, False, True),
+        (42, "unknown", True, False, False),
     ],
 )
 def test_status_table(
@@ -114,7 +116,7 @@ def test_manual_set_point_has_no_temperature() -> None:
 
 def test_missing_registers_give_none() -> None:
     """A category answer without the usual registers must not raise."""
-    decoded = state({2: 5})
+    decoded = state({2: 4})
 
     assert decoded.ambient_temperature is None
     assert decoded.setpoint is None
@@ -138,16 +140,19 @@ def test_half_degrees_are_kept() -> None:
 
 def test_alarm_register_raises_the_alarm_flag() -> None:
     """An alarm code counts even when the status is not an alarm status."""
-    assert state({2: 5, 3: 4}).has_alarm is True
+    assert state({2: 4, 3: 4}).has_alarm is True
+    assert state({2: 0, 3: 4}).has_alarm is True
     assert state({2: 8, 3: 0}).has_alarm is True
+    assert state({2: 9, 3: 0}).has_alarm is True
+    assert state({2: 4, 3: 0}).has_alarm is False
 
 
 def test_water_registers() -> None:
     """The hydro model adds a water probe and a water set point."""
-    assert state({2: 5, 1: 45, 49: 60}).water_temperature == 45
-    assert state({2: 5, 1: 45, 49: 60}).water_setpoint == 60
-    assert state({2: 5, 1: 0, 49: 81}).water_temperature is None
-    assert state({2: 5, 1: 0, 49: 81}).water_setpoint is None
+    assert state({2: 4, 1: 45, 49: 60}).water_temperature == 45
+    assert state({2: 4, 1: 45, 49: 60}).water_setpoint == 60
+    assert state({2: 4, 1: 0, 49: 81}).water_temperature is None
+    assert state({2: 4, 1: 0, 49: 81}).water_setpoint is None
 
 
 @pytest.mark.parametrize(

@@ -283,7 +283,7 @@ async def test_turn_on_when_already_on_sends_nothing(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:
     """An on command never reaches a running stove."""
-    fake_module.common[2] = 5
+    fake_module.common[2] = 4
 
     await coordinator.async_set_power(True)
 
@@ -309,7 +309,7 @@ async def test_turn_off(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:
     """A working stove can be turned off."""
-    fake_module.common[2] = 5
+    fake_module.common[2] = 4
 
     await coordinator.async_set_power(False)
 
@@ -326,7 +326,7 @@ async def test_turn_off_when_already_off_sends_nothing(
     assert fake_module.count(PATH_GET, key="022") == 0
 
 
-@pytest.mark.parametrize("status", [1, 2, 3, 4])
+@pytest.mark.parametrize("status", [1, 2, 3])
 async def test_turn_off_is_refused_while_igniting_without_flame(
     coordinator: RavelliCoordinator, fake_module: FakeModule, status: int
 ) -> None:
@@ -354,12 +354,30 @@ async def test_turn_off_while_igniting_is_allowed_otherwise(
     assert fake_module.count(PATH_GET, key="022", status="0") == 1
 
 
-@pytest.mark.parametrize("status", [8, 9])
-async def test_turn_off_in_alarm_acknowledges_it(
+@pytest.mark.parametrize("status", [4, 7])
+async def test_turn_off_is_allowed_without_flame_out_of_ignition(
     coordinator: RavelliCoordinator, fake_module: FakeModule, status: int
 ) -> None:
-    """Like the power button of the stove."""
+    """The ignition rule covers the codes 1 to 3 only."""
     fake_module.common[2] = status
+    fake_module.extra["flame"] = 0
+
+    await coordinator.async_set_power(False)
+
+    assert fake_module.count(PATH_GET, key="022", status="0") == 1
+
+
+@pytest.mark.parametrize(
+    ("status", "alarm_code"), [(8, 0), (9, 0), (4, 5), (5, 0), (42, 0)]
+)
+async def test_turn_off_in_alarm_or_unknown_status_is_sent(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    status: int,
+    alarm_code: int,
+) -> None:
+    """Like the power button of the stove; an unknown code counts as on."""
+    fake_module.common.update({2: status, 3: alarm_code})
 
     await coordinator.async_set_power(False)
 
@@ -577,14 +595,18 @@ async def test_refused_safety_rule_does_not_poll_faster(
         await coordinator.async_set_power(True)
 
     assert coordinator.update_interval == timedelta(seconds=30)
-    assert coordinator.data.state.status_key == "alarm"
+    assert coordinator.data.state.status_code == 8
 
 
-async def test_turn_on_is_refused_in_alarm_memory(
-    coordinator: RavelliCoordinator, fake_module: FakeModule
+@pytest.mark.parametrize(("status", "alarm_code"), [(9, 0), (0, 5), (6, 5), (4, 5)])
+async def test_turn_on_is_refused_in_alarm_memory_or_with_an_alarm_code(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    status: int,
+    alarm_code: int,
 ) -> None:
-    """Status 9 is an alarm status as well."""
-    fake_module.common[2] = 9
+    """Status 9, or an alarm code with any status, refuses the on command."""
+    fake_module.common.update({2: status, 3: alarm_code})
 
     with pytest.raises(ServiceValidationError) as err:
         await coordinator.async_set_power(True)

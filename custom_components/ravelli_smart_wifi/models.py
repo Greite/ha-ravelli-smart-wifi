@@ -44,21 +44,23 @@ DUCT_EXTERNAL = 6
 # The module reports 255 when the board has no flame information.
 FLAME_UNSUPPORTED = 255
 
+# Codes read on the display of a real stove. Code 4 is "Travail" and also
+# "Modulation". The codes 5, 8 and 9 were never seen and have no key.
 STATUS_KEYS: dict[int, str] = {
     0: "off",
-    1: "pellet_loading",
-    2: "ignition",
-    3: "waiting_flame",
-    4: "flame_present",
-    5: "working",
+    1: "ignition",
+    2: "waiting_flame",
+    3: "flame_present",
+    4: "working",
     6: "final_cleaning",
     7: "eco_stop",
-    8: "alarm",
-    9: "alarm_memory",
 }
 STATUS_UNKNOWN = "unknown"
-STATUS_IGNITING = frozenset({1, 2, 3, 4})
-STATUS_ON = frozenset({1, 2, 3, 4, 5, 7})
+STATUS_IGNITING = frozenset({1, 2, 3})
+# Every other code, an unknown one included, counts as on: the safe side.
+STATUS_NOT_ON = frozenset({0, 6, 8, 9})
+# The page of the module calls 8 and 9 alarms. Never seen on hardware: they
+# are only kept to refuse turning on.
 STATUS_ALARM = frozenset({8, 9})
 
 # Raw bounds of every writable register, as enforced by the vendor UI.
@@ -241,7 +243,7 @@ class StoveState:
     @property
     def is_on(self) -> bool:
         """Whether the stove is running or about to."""
-        return self.status_code in STATUS_ON
+        return self.status_code not in STATUS_NOT_ON
 
     @property
     def is_igniting(self) -> bool:

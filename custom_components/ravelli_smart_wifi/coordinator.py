@@ -227,7 +227,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             self._reported_model = state.model
             self._check_model(state.model)
             if on:
-                if state.in_alarm:
+                if state.has_alarm:
                     raise _invalid("turn_on_in_alarm")
                 if state.is_on:
                     return

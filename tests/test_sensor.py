@@ -23,15 +23,12 @@ from .helpers import advance, entity_id_for
 
 STATUS_OPTIONS = [
     "off",
-    "pellet_loading",
     "ignition",
     "waiting_flame",
     "flame_present",
     "working",
     "final_cleaning",
     "eco_stop",
-    "alarm",
-    "alarm_memory",
 ]
 
 
@@ -97,7 +94,7 @@ async def test_status_follows_the_stove(
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """The next poll shows the new status and temperatures."""
-    fake_module.common[2] = 5
+    fake_module.common[2] = 4
     fake_module.categories[2].update({0: 43, 4: 180})
 
     await advance(hass, freezer)
@@ -109,20 +106,22 @@ async def test_status_follows_the_stove(
     assert flue.state == "180"
 
 
+@pytest.mark.parametrize("code", [5, 8, 9, 42])
 async def test_unknown_status_code(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
     fake_module: FakeModule,
     freezer: FrozenDateTimeFactory,
+    code: int,
 ) -> None:
-    """A code outside the table gives the unknown state and keeps the code."""
-    fake_module.common[2] = 42
+    """A code never seen on hardware gives the unknown state and keeps the code."""
+    fake_module.common[2] = code
 
     await advance(hass, freezer)
 
     status = hass.states.get(entity_id_for(hass, "sensor", "status"))
     assert status.state == STATE_UNKNOWN
-    assert status.attributes["raw_value"] == 42
+    assert status.attributes["raw_value"] == code
 
 
 async def test_alarm_message(
@@ -140,7 +139,8 @@ async def test_alarm_message(
     alarm = hass.states.get(entity_id_for(hass, "sensor", "alarm"))
     assert alarm.state == "AL05 NO IGNITION"
     assert alarm.attributes["raw_value"] == 5
-    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "alarm"
+    status = hass.states.get(entity_id_for(hass, "sensor", "status"))
+    assert status.state == STATE_UNKNOWN
 
 
 async def test_alarm_without_a_text_shows_its_code(

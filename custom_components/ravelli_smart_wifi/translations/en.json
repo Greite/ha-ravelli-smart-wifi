@@ -187,15 +187,12 @@
         "name": "Status",
         "state": {
           "off": "Off",
-          "pellet_loading": "Loading pellets",
           "ignition": "Ignition",
           "waiting_flame": "Waiting for the flame",
           "flame_present": "Flame present",
           "working": "Working",
           "final_cleaning": "Final cleaning",
-          "eco_stop": "Eco stop",
-          "alarm": "Alarm",
-          "alarm_memory": "Alarm memory"
+          "eco_stop": "Eco stop"
         }
       },
       "wifi_signal": {
