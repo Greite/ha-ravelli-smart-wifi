@@ -19,7 +19,11 @@ def test_manifest_describes_a_local_polling_integration() -> None:
     assert manifest["integration_type"] == "device"
     assert manifest["iot_class"] == "local_polling"
     assert manifest["requirements"] == ["getmac==0.9.5"]
-    assert manifest["dhcp"] == [{"registered_devices": True}]
+    # Modules of other brands share the prefix: the flow probes the board.
+    assert manifest["dhcp"] == [
+        {"hostname": "winet-*"},
+        {"registered_devices": True},
+    ]
 
 
 def test_manifest_keys_are_sorted_as_hassfest_requires() -> None:

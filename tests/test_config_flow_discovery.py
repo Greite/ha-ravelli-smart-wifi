@@ -18,7 +18,10 @@ from custom_components.ravelli_smart_wifi.const import DOMAIN, ISSUE_URL
 from .fake_module import HOST, MAC, PATH_STATUS, FakeModule
 
 MAC_LOOKUP = "custom_components.ravelli_smart_wifi.config_flow.get_mac_address"
-DISCOVERY = DhcpServiceInfo(ip=HOST, hostname="module", macaddress="aabbccddeeff")
+# The module announces WINET- and the last four bytes of its MAC address.
+DISCOVERY = DhcpServiceInfo(
+    ip=HOST, hostname="winet-ccddeeff", macaddress="aabbccddeeff"
+)
 OTHER_HOST = "192.0.2.11"
 
 
@@ -104,15 +107,17 @@ async def test_discovery_of_another_device(
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "not_winet"
+    assert hass.config_entries.async_entries(DOMAIN) == []
 
 
 async def test_discovery_of_an_unsupported_model(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, mock_mac: None
 ) -> None:
-    """The abort names the model code."""
+    """A board of another brand behind the same prefix: the abort names it."""
     FakeModule(model=15).install(aioclient_mock)
 
     result = await discover(hass)
+    await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "unsupported_model"
@@ -120,6 +125,8 @@ async def test_discovery_of_an_unsupported_model(
         "model": "15",
         "issue_url": ISSUE_URL,
     }
+    assert hass.config_entries.async_entries(DOMAIN) == []
+    assert hass.config_entries.flow.async_progress() == []
 
 
 async def test_reconfigure_changes_the_address(
