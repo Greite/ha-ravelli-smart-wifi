@@ -180,9 +180,6 @@
       "extractor_speed": {
         "name": "Vitesse de l'extracteur"
       },
-      "flue_temperature": {
-        "name": "Température des fumées"
-      },
       "status": {
         "name": "État",
         "state": {

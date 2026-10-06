@@ -13,7 +13,6 @@ REG_AMBIENT_TEMP = 0
 REG_WATER_TEMP = 1
 REG_STATUS = 2
 REG_ALARM = 3
-REG_FLUE_TEMP = 4
 REG_EXTRACTOR = 5
 REG_DUCT_RIGHT_TEMP = 24
 REG_DUCT_LEFT_TEMP = 25
@@ -281,11 +280,6 @@ class StoveState:
     def power(self) -> int | None:
         """Power level, 1 to 5."""
         return self.raw(REG_POWER)
-
-    @property
-    def flue_temperature(self) -> int | None:
-        """Flue gas temperature, raw."""
-        return self.raw(REG_FLUE_TEMP)
 
     @property
     def extractor_speed(self) -> int | None:

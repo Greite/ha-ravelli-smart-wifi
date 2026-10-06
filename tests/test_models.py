@@ -49,7 +49,6 @@ def test_main_registers_are_decoded() -> None:
     assert decoded.ambient_temperature == 22.0
     assert decoded.setpoint == 22
     assert decoded.power == 1
-    assert decoded.flue_temperature == 0
     assert decoded.extractor_speed == 0
     assert decoded.flame is None
     assert decoded.alarm_text == ""
@@ -122,7 +121,6 @@ def test_missing_registers_give_none() -> None:
     assert decoded.setpoint is None
     assert decoded.is_manual is False
     assert decoded.power is None
-    assert decoded.flue_temperature is None
     assert decoded.extractor_speed is None
     assert decoded.water_temperature is None
     assert decoded.water_setpoint is None

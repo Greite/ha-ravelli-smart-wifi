@@ -52,9 +52,17 @@ async def test_sensors_of_an_idle_stove(
     assert ambient.attributes["device_class"] == "temperature"
     assert ambient.attributes["state_class"] == "measurement"
 
-    flue = hass.states.get(entity_id_for(hass, "sensor", "flue_temperature"))
-    assert flue.state == "0"
-    assert flue.attributes["unit_of_measurement"] == "°C"
+
+async def test_there_is_no_flue_gas_temperature(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """The module leaves register 4 at 0 while the flue gas is hot."""
+    assert (
+        er.async_get(hass).async_get_entity_id(
+            "sensor", DOMAIN, f"{MAC}_flue_temperature"
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize("key", ["extractor_speed", "wifi_signal"])
@@ -95,15 +103,13 @@ async def test_status_follows_the_stove(
 ) -> None:
     """The next poll shows the new status and temperatures."""
     fake_module.common[2] = 4
-    fake_module.categories[2].update({0: 43, 4: 180})
+    fake_module.categories[2][0] = 43
 
     await advance(hass, freezer)
 
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "working"
     ambient = hass.states.get(entity_id_for(hass, "sensor", "ambient_temperature"))
     assert ambient.state == "21.5"
-    flue = hass.states.get(entity_id_for(hass, "sensor", "flue_temperature"))
-    assert flue.state == "180"
 
 
 @pytest.mark.parametrize("code", [5, 8, 9, 42])
@@ -168,14 +174,11 @@ async def test_missing_register_gives_an_unknown_state(
 ) -> None:
     """The other sensors keep working."""
     del fake_module.categories[2][0]
-    del fake_module.categories[2][4]
 
     await advance(hass, freezer)
 
     ambient = hass.states.get(entity_id_for(hass, "sensor", "ambient_temperature"))
     assert ambient.state == STATE_UNKNOWN
-    flue = hass.states.get(entity_id_for(hass, "sensor", "flue_temperature"))
-    assert flue.state == STATE_UNKNOWN
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "off"
 
 

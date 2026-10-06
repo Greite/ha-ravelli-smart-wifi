@@ -71,13 +71,6 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
         suggested_display_precision=1,
         value_fn=lambda data: data.state.ambient_temperature,
     ),
-    RavelliSensorDescription(
-        key="flue_temperature",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: data.state.flue_temperature,
-    ),
     # The scale of this register is not verified: raw value, no unit.
     RavelliSensorDescription(
         key="extractor_speed",
