@@ -73,3 +73,13 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | 2026-09-29 | AIR-RDS | 0.51 | Flue gas temperature | Fail. Register 4 stays at 0 while the display of the stove shows 106 °C. The value is in no register of the categories 0 to 20 at the access level of the integration |
 | 2026-09-29 | AIR-RDS | 0.51 | Extractor speed | One reading only: raw 253 for 2780 rpm on the display, which fits `raw × 10 + 250`. Two more readings are needed |
 | 2026-09-29 | AIR-RDS | 0.51 | Thermostat card, Soak, DHCP hostname | Not checked yet |
+| 2026-10-06 | AIR-RDS | 0.51 | On and off | Pass. Both commands work from Home Assistant, on a cold stove and in eco stop. Status codes read on the display of the stove at each change: 0 "Eteint", 1 "Allumage", 2 "Attente flamme", 3 "Flamme présente", 4 "Travail" and also "Modulation", 6 "Nettoyage final", 7 "Eco stop". The codes 5, 8 and 9 were never seen. The table of the page of the module is wrong for the codes 1 to 4 on this board |
+| 2026-10-06 | AIR-RDS | 0.51 | Off command in eco stop | Pass. The stove leaves eco stop for final cleaning three seconds after the command |
+| 2026-10-06 | AIR-RDS | 0.51 | Extractor speed | Pass. Four readings (raw 101, 131 and twice 253 for 1260, 1560 and 2780 rpm) give `rpm = raw × 10 + 250` exactly |
+| 2026-10-06 | AIR-RDS | 0.51 | Flue gas temperature | Fail, confirmed three times: 100, 106 and 134 °C on the display, register 4 at 0 |
+| 2026-10-06 | AIR-RDS | 0.51 | Thermostat card | The target moves by whole degrees. The current temperature was only seen at whole degrees; a half degree was not observed |
+| 2026-10-06 | AIR-RDS | 0.51 | Soak | Pass. No log line of the integration in 35 hours of polling |
+| 2026-10-06 | AIR-RDS | 0.51 | DHCP hostname | The module announces `WINET-` followed by eight hexadecimal digits, the last four bytes of its MAC address |
+| 2026-10-06 | AIR-RDS | 0.51 | Power cycle | When power comes back the stove runs a short cleaning cycle (status 6). The integration logs one failed update while the module restarts, then reads the stove again by itself |
+| 2026-10-06 | AIR-RDS | 0.51 | Messages of the display | Three to four minutes after the stove reaches status 4, its display shows "Chargement excessif" for about two minutes. The module reports nothing: no status change, no alarm. The integration cannot show the pop-up messages of the stove |
+| 2026-10-06 | AIR-RDS | 0.51 | Home Assistant update | The integration kept working across an update of Home Assistant from 2026.9.3 to 2026.9.4 |
