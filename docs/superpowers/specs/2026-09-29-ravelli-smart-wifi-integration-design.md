@@ -306,8 +306,8 @@ Safety rules:
 - Turning off is refused while the stove is igniting and the module reports
   no flame (`flame == 0`), as the vendor UI does.
 - Turning on is refused while the status code is 8 or 9, or the alarm
-  register (3) is not 0. Turning off in those states is allowed and
-  acknowledges the alarm.
+  register (3) is not 0. Turning off in those states is allowed and sent, a
+  stopped stove included. Whether it acknowledges the alarm is not verified.
 - Igniting means the status codes 1, 2 and 3.
 - Writes are never retried automatically.
 - Schedule writes read the table, change it, write it, read it back and
@@ -376,16 +376,28 @@ repository.
 
 ### Hardware verification
 
-These points need a running stove and are checked by hand before the first
-release:
+These points need a running stove. They were checked by hand on an AIR-RDS
+board, firmware 0.51, on 2026-09-29 and 2026-10-06.
+`docs/hardware-verification.md` holds the full results.
 
-1. On and off commands.
-2. Scale of the flue gas temperature and extractor speed.
-3. Manual mode (register 50 set to 41).
+1. On and off commands: verified, on a cold stove and in eco stop.
+2. Scale of the flue gas temperature and extractor speed: the module does not
+   give the flue gas temperature; the extractor speed is verified,
+   rpm = raw × 10 + 250.
+3. Manual mode (register 50 set to 41): verified.
 4. Schedule write, including the global flag, after saving the existing
-   programs.
-5. Clock synchronization.
-6. The hostname announced over DHCP.
+   programs: verified.
+5. Clock synchronization: verified, to the minute.
+6. The hostname announced over DHCP: `WINET-` followed by eight hexadecimal
+   digits.
+
+Not verified:
+
+- The status codes 5, 8 and 9, never seen.
+- Whether an off command clears the alarm register of a stopped stove.
+- A program name of 15 characters that holds an accented letter.
+- The half degree of the current temperature on the thermostat card.
+- The HYDRO-RDS and ECO-RDS boards.
 
 ## 11. Repository conventions
 
@@ -423,3 +435,4 @@ release:
 | Program names | Any printable character, control characters refused | Hardware verification, 2026-09-29 and 2026-10-06 |
 | Command answers | On and off, schedule write and program delete require `result: true` | Hardware verification, 2026-09-29 and 2026-10-06 |
 | DHCP discovery | Matcher `hostname: winet-*` | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Off command with an alarm reported | Sent even when the stove is stopped | The on command is refused in that state; without it Home Assistant had no way out |
