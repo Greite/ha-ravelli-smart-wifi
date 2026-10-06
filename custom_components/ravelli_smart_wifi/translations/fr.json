@@ -261,7 +261,7 @@
       "message": "Le poêle s'allume et la flamme n'est pas établie. Attendez avant de l'éteindre."
     },
     "turn_on_in_alarm": {
-      "message": "Le poêle est en alarme. Éteignez-le pour acquitter l'alarme, puis rallumez-le."
+      "message": "Le poêle signale une alarme. Acquittez-la sur le poêle lui-même, ou éteignez le poêle depuis Home Assistant, puis rallumez-le."
     },
     "unsupported_model": {
       "message": "Le modèle de poêle {model} n'est pas encore pris en charge. Demandez-le sur {issue_url}."

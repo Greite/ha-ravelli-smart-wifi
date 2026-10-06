@@ -326,6 +326,17 @@ async def test_turn_off_when_already_off_sends_nothing(
     assert fake_module.count(PATH_GET, key="022") == 0
 
 
+async def test_turn_off_of_a_stopped_stove_in_alarm_is_sent(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """Off is the safe direction: an alarm code lets it through."""
+    fake_module.common.update({2: 0, 3: 5})
+
+    await coordinator.async_set_power(False)
+
+    assert fake_module.count(PATH_GET, key="022", status="0") == 1
+
+
 @pytest.mark.parametrize("status", [1, 2, 3])
 async def test_turn_off_is_refused_while_igniting_without_flame(
     coordinator: RavelliCoordinator, fake_module: FakeModule, status: int

@@ -234,7 +234,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             else:
                 if state.is_igniting and state.flame == 0:
                     raise _invalid("turn_off_during_ignition")
-                if state.status_code == 0:
+                # With an alarm reported, off is sent: it is the safe way.
+                if state.status_code == 0 and not state.has_alarm:
                     return
             await self.client.set_power(on)
 

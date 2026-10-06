@@ -261,7 +261,7 @@
       "message": "The stove is igniting and the flame is not established. Wait before turning it off."
     },
     "turn_on_in_alarm": {
-      "message": "The stove is in alarm. Turn it off to acknowledge the alarm, then turn it on."
+      "message": "The stove reports an alarm. Acknowledge it on the stove itself, or turn the stove off from Home Assistant, then turn it on."
     },
     "unsupported_model": {
       "message": "Stove model {model} is not supported yet. Ask for it at {issue_url}."

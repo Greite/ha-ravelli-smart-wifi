@@ -135,8 +135,9 @@ data:
   integration. Keep it on a network you trust.
 - The integration refuses to turn the stove off while it is igniting and the
   flame is not established, as the module's own page does.
-- The integration refuses to turn the stove on while it is in alarm. Turn it
-  off first: that acknowledges the alarm.
+- The integration refuses to turn the stove on while it reports an alarm.
+  Acknowledge the alarm on the stove itself, or turn the stove off from Home
+  Assistant, then turn it on.
 - A command is never sent twice. When the module does not answer, you get an
   error and nothing is retried.
 - Only the settings listed above are written. There is no action that writes
