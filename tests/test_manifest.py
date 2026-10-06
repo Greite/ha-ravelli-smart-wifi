@@ -18,7 +18,7 @@ def test_manifest_describes_a_local_polling_integration() -> None:
     assert manifest["config_flow"] is True
     assert manifest["integration_type"] == "device"
     assert manifest["iot_class"] == "local_polling"
-    assert manifest["requirements"] == ["getmac==0.9.5"]
+    assert manifest["requirements"] == ["getmac>=0.9.5"]
     # Modules of other brands share the prefix: the flow probes the board.
     assert manifest["dhcp"] == [
         {"hostname": "winet-*"},
