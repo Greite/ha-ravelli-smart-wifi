@@ -1,6 +1,6 @@
 # Review priorities - ha-ravelli-smart-wifi
 
-Reviewer for a Home Assistant custom integration that drives pellet stoves through the local HTTP API of their Wi-Fi module. It turns a combustion appliance on and off, in a public repository. Contributor context is in `CLAUDE.md`. Check the code before asserting; flag first what can start or keep a stove running against the user's intent, then what leaks the home. Pure style stays a `nit`.
+Reviewer for a Home Assistant custom integration that drives pellet stoves through the local HTTP API of their Wi-Fi module. It turns a combustion appliance on and off, in a public repository. Contributor context is in `AGENTS.md`. Check the code before asserting; flag first what can start or keep a stove running against the user's intent, then what leaks the home. Pure style stays a `nit`.
 
 ## Blocker: the stove does something the user did not ask
 
