@@ -61,10 +61,12 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 
 ### With HACS
 
-1. In HACS, open the menu at the top right and choose **Custom repositories**.
-2. Add `https://github.com/Greite/ha-ravelli-smart-wifi` with the type
-   **Integration**.
-3. Search for **Ravelli Smart Wi-Fi**, download it and restart Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Greite&repository=ha-ravelli-smart-wifi&category=integration)
+
+Click the button above, download **Ravelli Smart Wi-Fi** and restart Home
+Assistant. Without the button: in HACS, open the menu at the top right, choose
+**Custom repositories**, add `https://github.com/Greite/ha-ravelli-smart-wifi`
+with the type **Integration**, then search for **Ravelli Smart Wi-Fi**.
 
 ### By hand
 
