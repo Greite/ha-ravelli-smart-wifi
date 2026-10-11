@@ -131,7 +131,8 @@ def test_readme_says_what_the_hardware_sessions_showed() -> None:
         "Modulation",
         "Chargement excessif",
         "flue gas temperature is not available",
-        "5, 8 and 9",
+        "5 and 8",
+        "code 255",
         "seconds",
     ):
         assert text in section, text

@@ -45,7 +45,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
 | Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop |
-| Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, and whether an alarm is active |
+| Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
 | Sensor "Ambient temperature" | In °C |
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
@@ -158,8 +158,11 @@ know the room is safe and the stove is ready to run.
 - The module does not send the messages of the display of the stove, such
   as "Chargement excessif". Home Assistant cannot show them.
 - The flue gas temperature is not available through the module.
-- The status codes 5, 8 and 9 were never seen on a real stove. They show as
-  unknown, and an alarm is still reported by the alarm sensors.
+- The status codes 5 and 8 were never seen on a real stove. The code 9 was
+  seen once, while the display of the stove showed the alarm "01-Black-out":
+  the module sent 255 as the alarm code and no alarm text, so the sensor
+  "Alarm message" showed "code 255". These codes show as unknown, and an
+  alarm is still reported by the alarm sensors.
 - The clock is set to the minute: the module has no seconds.
 
 ## What is not verified yet

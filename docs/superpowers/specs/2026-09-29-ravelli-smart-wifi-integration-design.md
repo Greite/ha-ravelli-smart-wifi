@@ -145,7 +145,7 @@ the vendor UI is wrong for the codes 1 to 4 on this board.
 | 6 | Nettoyage final | `final_cleaning` | off |
 | 7 | Eco stop | `eco_stop` | idle |
 | 8 | not seen on hardware; "alarm" in the vendor UI | none | none |
-| 9 | not seen on hardware; "alarm memory" in the vendor UI | none | none |
+| 9 | seen once, 2026-10-10, with the alarm "01-Black-out" on the display and 255 in register 3; "alarm memory" in the vendor UI | none | none |
 
 Any code without a key gives the Home Assistant `unknown` state, with the raw
 code exposed as an attribute. The stove counts as on for every code except
@@ -225,7 +225,7 @@ default" are created disabled in the entity registry.
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. |
 | climate | Water | registers 49, 1 | Model 11 only. Target 30 to 80 °C. |
 | sensor | Status | register 2 | Enum of the 7 keys; `unknown` state for any other code; attribute `raw_value`. |
-| sensor | Alarm | register 3, `alr` | State is the module's alarm text, or `none`; attribute `raw_value`. |
+| sensor | Alarm | register 3, `alr` | State is the module's alarm text; `code N` with the raw code of register 3 when the text is empty and the code is not 0; `none` otherwise; attribute `raw_value`. |
 | sensor | Ambient temperature | register 0 | °C, measurement. |
 | sensor | Extractor speed | register 5 | rpm, measurement, enabled by default. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
@@ -377,8 +377,9 @@ repository.
 ### Hardware verification
 
 These points need a running stove. They were checked by hand on an AIR-RDS
-board, firmware 0.51, on 2026-09-29 and 2026-10-06.
-`docs/hardware-verification.md` holds the full results.
+board, firmware 0.51, on 2026-09-29 and 2026-10-06; an alarm was read once,
+without any command, on 2026-10-10. `docs/hardware-verification.md` holds the
+full results.
 
 1. On and off commands: verified, on a cold stove and in eco stop.
 2. Scale of the flue gas temperature and extractor speed: the module does not
@@ -393,7 +394,8 @@ board, firmware 0.51, on 2026-09-29 and 2026-10-06.
 
 Not verified:
 
-- The status codes 5, 8 and 9, never seen.
+- The status codes 5 and 8, never seen; the meaning of the code 9 and of the
+  value 255 in register 3, seen once with an alarm.
 - Whether an off command clears the alarm register of a stopped stove.
 - A program name of 15 characters that holds an accented letter.
 - The half degree of the current temperature on the thermostat card.
@@ -429,7 +431,7 @@ Not verified:
 | On and off commands | Fresh read of the stove state before the safety rules | The polled state can be 30 seconds old |
 | Minimum Home Assistant version | 2026.9.0 | Only tested version |
 | Calendar descriptions | In French when Home Assistant is in French, in English otherwise | Asked by the owner after the final review |
-| Status codes | Table read on the display: 1 to 4 are ignition, waiting for the flame, flame present, working; 5, 8 and 9 have no key; igniting is 1 to 3; on is every code but 0, 6, 8 and 9; turning on is also refused for a non-zero alarm register | Hardware verification, 2026-09-29 and 2026-10-06 |
+| Status codes | Table read on the display: 1 to 4 are ignition, waiting for the flame, flame present, working; 5, 8 and 9 have no key (9 seen once with an alarm, meaning not confirmed); igniting is 1 to 3; on is every code but 0, 6, 8 and 9; turning on is also refused for a non-zero alarm register | Hardware verification, 2026-09-29, 2026-10-06 and 2026-10-10 |
 | Flue gas temperature | Sensor removed | Hardware verification, 2026-09-29 and 2026-10-06 |
 | Extractor speed | rpm = raw × 10 + 250, enabled by default | Hardware verification, 2026-09-29 and 2026-10-06 |
 | Program names | Any printable character, control characters refused | Hardware verification, 2026-09-29 and 2026-10-06 |

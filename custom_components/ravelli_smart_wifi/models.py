@@ -44,7 +44,8 @@ DUCT_EXTERNAL = 6
 FLAME_UNSUPPORTED = 255
 
 # Codes read on the display of a real stove. Code 4 is "Travail" and also
-# "Modulation". The codes 5, 8 and 9 were never seen and have no key.
+# "Modulation". The codes 5 and 8 were never seen; 9 was seen once, with an
+# alarm on the display, and has no key until its meaning is confirmed.
 STATUS_KEYS: dict[int, str] = {
     0: "off",
     1: "ignition",
@@ -58,8 +59,8 @@ STATUS_UNKNOWN = "unknown"
 STATUS_IGNITING = frozenset({1, 2, 3})
 # Every other code, an unknown one included, counts as on: the safe side.
 STATUS_NOT_ON = frozenset({0, 6, 8, 9})
-# The page of the module calls 8 and 9 alarms. Never seen on hardware: they
-# are only kept to refuse turning on.
+# The page of the module calls 8 and 9 alarms. Code 9 was seen once with an
+# alarm on the display, 8 never: they are kept to refuse turning on.
 STATUS_ALARM = frozenset({8, 9})
 
 # Raw bounds of every writable register, as enforced by the vendor UI.
