@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -232,6 +233,49 @@ async def test_ktr_air_bldc_turn_on_is_refused(
 
     assert err.value.translation_key == "turn_on_not_verified"
     assert module.count(PATH_GET, key="022") == 0
+
+
+async def test_ktr_air_bldc_schedule_cannot_start_the_stove(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """A program can start the stove: only what stops it is sent."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    switch = entity_id_for(hass, "switch", "schedule")
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, MAC), hass.config_entries.async_entries(DOMAIN)[0].entry_id
+    )
+
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch}, blocking=True
+    )
+    assert module.count(PATH_GET, key="032") == 1
+    assert module.schedule_enabled is False
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            "switch", "turn_on", {"entity_id": switch}, blocking=True
+        )
+    assert err.value.translation_key == "schedule_not_verified"
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "set_schedule_program",
+            {
+                "device_id": device.id,
+                "slot": 6,
+                "name": "Test",
+                "start": "06:30:00",
+                "end": "08:00:00",
+                "temperature": 21,
+                "power": 3,
+                "weekdays": ["mon"],
+            },
+            blocking=True,
+        )
+    assert err.value.translation_key == "schedule_not_verified"
+    assert module.count(PATH_GET, key="032") == 1
+    assert module.schedule_enabled is False
 
 
 @pytest.mark.parametrize("status", [0, 2, 5, 6, 42])

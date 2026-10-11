@@ -239,6 +239,9 @@
     "schedule_no_weekday": {
       "message": "Sélectionnez au moins un jour de la semaine."
     },
+    "schedule_not_verified": {
+      "message": "Le programme horaire de ce poêle ne peut pas encore être activé ni modifié depuis Home Assistant : ses codes d'état n'ont jamais été vérifiés sur un vrai poêle, et un programme peut l'allumer. Désactiver le programme horaire et supprimer des programmes restent possibles."
+    },
     "schedule_power_range": {
       "message": "La puissance doit être comprise entre 1 et 5."
     },

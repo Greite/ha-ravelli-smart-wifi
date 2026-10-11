@@ -19,7 +19,7 @@ board, not on the commercial name of the stove.
 | AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
-| KTR-AIR BLDC | Written from the module's own web page, not tested. No status code of this board was checked on a real stove: the status shows as unknown, the thermostat always shows heat, and turning on from Home Assistant is refused. Turning off is sent, except while the stove reports no flame |
+| KTR-AIR BLDC | Written from the module's own web page, not tested. No status code of this board was checked on a real stove: the status shows as unknown, the thermostat always shows heat, and turning on, turning the schedule on and storing a program are refused. Turning off is sent, except while the stove reports no flame; turning the schedule off and deleting programs work |
 | Any other board | Refused at setup |
 
 To find your board, open `http://<address of the module>/` in a browser: the

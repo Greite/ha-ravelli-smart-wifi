@@ -28,6 +28,7 @@ EXCEPTIONS = {
     "schedule_no_weekday",
     "schedule_power_range",
     "schedule_slot_range",
+    "schedule_not_verified",
     "schedule_temperature_range",
     "schedule_time_step",
     "schedule_unreadable",
