@@ -60,10 +60,6 @@ STATUS_KEYS: dict[int, str] = {
 # seen once with an alarm on the display, 8 never: they are kept to refuse
 # turning on.
 RDS_ALARM_CODES = frozenset({8, 9})
-# A board whose codes were never read on its display. Its page of the module
-# uses another table, and that page is wrong for four codes of the AIR-RDS
-# board: only 0, off in every table, is trusted.
-UNVERIFIED_STATUS_KEYS: dict[int, str] = {0: "off"}
 STATUS_UNKNOWN = "unknown"
 KEYS_IGNITING = frozenset({"ignition", "waiting_flame", "flame_present"})
 # Every other code, an unknown one included, counts as on: the safe side.
@@ -155,13 +151,15 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
     ),
     # Transcribed from the page of the module: same main and clock registers
     # as the RDS boards, no comfort settings. Its ducting registers (175, 183
-    # to 193) differ from the RDS ones and are left out.
+    # to 193) differ from the RDS ones and are left out. No status code was
+    # read on its display, and the page is wrong for four codes of the
+    # AIR-RDS board: no code has a meaning, and turning on is refused.
     8: StoveModel(
         code=8,
         name="KTR-AIR BLDC",
         categories=(CATEGORY_MAIN,),
         writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
-        status_keys=UNVERIFIED_STATUS_KEYS,
+        status_keys={},
         alarm_codes=frozenset(),
     ),
     11: StoveModel(
@@ -264,8 +262,9 @@ class StoveState:
     def status_key(self) -> str:
         """Status as a translation key."""
         model = SUPPORTED_MODELS.get(self.model)
-        keys = model.status_keys if model else UNVERIFIED_STATUS_KEYS
-        return keys.get(self.status_code, STATUS_UNKNOWN)
+        return (model.status_keys if model else {}).get(
+            self.status_code, STATUS_UNKNOWN
+        )
 
     @property
     def is_on(self) -> bool:
@@ -275,13 +274,12 @@ class StoveState:
     @property
     def is_igniting(self) -> bool:
         """Whether the stove is between the on command and steady work."""
-        key = self.status_key
         model = SUPPORTED_MODELS.get(self.model)
-        if model is None or model.status_keys is UNVERIFIED_STATUS_KEYS:
-            # Any code but off may be an ignition: with no flame, off is
-            # refused, as on the page of the module.
-            return key == STATUS_UNKNOWN
-        return key in KEYS_IGNITING
+        if model is None or not model.status_keys:
+            # Any code may be an ignition: with no flame, off is refused, as
+            # on the page of the module.
+            return True
+        return self.status_key in KEYS_IGNITING
 
     @property
     def in_alarm(self) -> bool:

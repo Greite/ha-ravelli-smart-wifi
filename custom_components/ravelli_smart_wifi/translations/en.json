@@ -263,6 +263,9 @@
     "turn_on_in_alarm": {
       "message": "The stove reports an alarm. Acknowledge it on the stove itself, or turn the stove off from Home Assistant, then turn it on."
     },
+    "turn_on_not_verified": {
+      "message": "Turning this stove on from Home Assistant is not available yet: its status codes were never checked on a real stove, so Home Assistant cannot tell whether it is off. Turn it on from the stove itself or from the web page of the module."
+    },
     "unsupported_model": {
       "message": "Stove model {model} is not supported yet. Ask for it at {issue_url}."
     },

@@ -34,6 +34,7 @@ EXCEPTIONS = {
     "temperature_required",
     "turn_off_during_ignition",
     "turn_on_in_alarm",
+    "turn_on_not_verified",
     "unsupported_model",
     "value_out_of_range",
 }

@@ -263,6 +263,9 @@
     "turn_on_in_alarm": {
       "message": "Le poêle signale une alarme. Acquittez-la sur le poêle lui-même, ou éteignez le poêle depuis Home Assistant, puis rallumez-le."
     },
+    "turn_on_not_verified": {
+      "message": "L'allumage de ce poêle depuis Home Assistant n'est pas encore disponible : ses codes d'état n'ont jamais été vérifiés sur un vrai poêle, donc Home Assistant ne sait pas s'il est éteint. Allumez-le depuis le poêle lui-même ou depuis la page web du module."
+    },
     "unsupported_model": {
       "message": "Le modèle de poêle {model} n'est pas encore pris en charge. Demandez-le sur {issue_url}."
     },

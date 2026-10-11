@@ -202,7 +202,7 @@ async def test_stove_without_ducting_or_water(
 async def test_ktr_air_bldc(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """Model 8 has no comfort settings, and an untrusted status counts as on."""
+    """Model 8 has no comfort settings, and no status is interpreted."""
     module = await setup_model(hass, aioclient_mock, 8)
     registry = er.async_get(hass)
 
@@ -214,21 +214,31 @@ async def test_ktr_air_bldc(
         assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_{key}") is None
     assert module.count(PATH_GET, key="020", category="11") == 0
 
-    # Final cleaning on the AIR-RDS board, brazier cleaning on the page of
-    # the module for this one: the stove may be running, on is not sent.
-    module.categories[2][2] = 6
-    await call(hass, "stove", "turn_on")
-    assert module.count(PATH_GET, key="022", status="1") == 0
     state = climate(hass, "stove")
     assert state.state == "heat"
     assert state.attributes.get("hvac_action") is None
 
 
-@pytest.mark.parametrize("status", [2, 5, 6, 42])
+@pytest.mark.parametrize("status", [0, 6])
+async def test_ktr_air_bldc_turn_on_is_refused(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """Without a status read on its display, Home Assistant cannot tell off."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    module.categories[2][2] = status
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "stove", "turn_on")
+
+    assert err.value.translation_key == "turn_on_not_verified"
+    assert module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize("status", [0, 2, 5, 6, 42])
 async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """Any code but off may be an ignition: like the page, wait for the flame."""
+    """Any code may be an ignition: like the page, wait for the flame."""
     module = await setup_model(hass, aioclient_mock, 8)
     module.categories[2][2] = status
     module.extra["flame"] = 0

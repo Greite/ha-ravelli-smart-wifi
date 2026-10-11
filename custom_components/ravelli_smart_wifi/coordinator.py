@@ -227,6 +227,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             self._reported_model = state.model
             self._check_model(state.model)
             if on:
+                if not self.model.status_keys:
+                    # No status of this board was read on a stove: Home
+                    # Assistant cannot tell whether it is off.
+                    raise _invalid("turn_on_not_verified")
                 if state.has_alarm:
                     raise _invalid("turn_on_in_alarm")
                 if state.is_on:
@@ -235,7 +239,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 if state.is_igniting and state.flame == 0:
                     raise _invalid("turn_off_during_ignition")
                 # With an alarm reported, off is sent: it is the safe way.
-                if state.status_code == 0 and not state.has_alarm:
+                if state.status_key == "off" and not state.has_alarm:
                     return
             await self.client.set_power(on)
 

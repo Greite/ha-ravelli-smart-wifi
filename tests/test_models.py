@@ -105,28 +105,15 @@ def test_status_table(
     assert decoded.in_alarm is in_alarm
 
 
-@pytest.mark.parametrize(
-    ("code", "key", "is_on", "is_igniting"),
-    [
-        (0, "off", False, False),
-        # The page of the module names these otherwise for this board, and it
-        # is wrong for four codes of the AIR-RDS board: none is trusted, and
-        # each may be an ignition.
-        (2, "unknown", True, True),
-        (6, "unknown", True, True),
-        (9, "unknown", True, True),
-        (10, "unknown", True, True),
-    ],
-)
-def test_status_table_of_ktr_air_bldc(
-    code: int, key: str, is_on: bool, is_igniting: bool
-) -> None:
-    """Model 8 trusts code 0 only; every other code counts as on."""
+@pytest.mark.parametrize("code", [0, 2, 6, 9, 10])
+def test_ktr_air_bldc_has_no_status_meaning(code: int) -> None:
+    """No code of model 8 was read on its display: each is unknown and on."""
     decoded = state({2: code}, model=8)
 
-    assert decoded.status_key == key
-    assert decoded.is_on is is_on
-    assert decoded.is_igniting is is_igniting
+    assert decoded.status_key == "unknown"
+    assert decoded.is_on is True
+    # Any code may be an ignition: off waits for the flame, as on the page.
+    assert decoded.is_igniting is True
     assert decoded.in_alarm is False
 
 
