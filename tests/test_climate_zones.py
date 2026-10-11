@@ -199,6 +199,52 @@ async def test_stove_without_ducting_or_water(
 
 
 @pytest.mark.usefixtures("enable_all_entities")
+async def test_ktr_air_bldc(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Model 8 has no comfort settings, and an untrusted status counts as on."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    registry = er.async_get(hass)
+
+    assert exists(hass, "stove")
+    assert not exists(hass, "duct_right")
+    assert not exists(hass, "water")
+    assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_power")
+    for key in ("comfort_delta", "comfort_delay"):
+        assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_{key}") is None
+    assert module.count(PATH_GET, key="020", category="11") == 0
+
+    # Final cleaning on the AIR-RDS board, brazier cleaning on the page of
+    # the module for this one: the stove may be running, on is not sent.
+    module.categories[2][2] = 6
+    await call(hass, "stove", "turn_on")
+    assert module.count(PATH_GET, key="022", status="1") == 0
+    state = climate(hass, "stove")
+    assert state.state == "heat"
+    assert state.attributes.get("hvac_action") is None
+
+
+@pytest.mark.parametrize("status", [2, 5, 6, 42])
+async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """Any code but off may be an ignition: like the page, wait for the flame."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    module.categories[2][2] = status
+    module.extra["flame"] = 0
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "stove", "turn_off")
+
+    assert err.value.translation_key == "turn_off_during_ignition"
+    assert module.count(PATH_GET, key="022") == 0
+
+    module.extra["flame"] = 1
+    await call(hass, "stove", "turn_off")
+    assert module.count(PATH_GET, key="022", status="0") == 1
+
+
+@pytest.mark.usefixtures("enable_all_entities")
 async def test_water_thermostat(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:

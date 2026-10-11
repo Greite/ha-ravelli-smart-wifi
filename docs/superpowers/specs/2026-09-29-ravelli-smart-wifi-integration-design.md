@@ -28,16 +28,18 @@ Success criteria:
 
 ### Supported stove boards
 
-The module reports a numeric board model. Support is limited to the RDS
-family, which shares one register layout in the vendor UI.
+The module reports a numeric board model. Support covers the RDS family,
+which shares one register layout in the vendor UI, and the KTR-AIR BLDC
+board, which uses the same main and clock registers (section 12).
 
 | Model code | Vendor name | Status |
 |---|---|---|
 | 7 | AIR-RDS | Verified on real hardware |
+| 8 | KTR-AIR BLDC | Transcribed from the vendor UI, untested; only status code 0 is known |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
 | 12 | ECO-RDS | Transcribed from the vendor UI, untested |
 
-Every other model code (1, 2, 5, 6, 8, 9, 10, 14, 15) is refused during
+Every other model code (1, 2, 5, 6, 9, 10, 14, 15) is refused during
 setup with a message that names the code and points to the issue tracker.
 
 ### In scope
@@ -439,3 +441,4 @@ Not verified:
 | DHCP discovery | Matcher `hostname: winet-*` | Hardware verification, 2026-09-29 and 2026-10-06 |
 | Off command with an alarm reported | Sent even when the stove is stopped | The on command is refused in that state; without it Home Assistant had no way out |
 | Brand images | Shipped in the `brand` folder of the integration: icon, logo and a dark logo, each in two sizes | Asked by the owner after the installation; Home Assistant reads this folder for custom integrations |
+| KTR-AIR BLDC (model 8) | Supported, transcribed from the vendor UI: categories 2 only, set point, power and clock writable, no comfort settings, ducting (registers 175, 183 to 193) left out. Status table per model: on this board only code 0 has a key ("off"); every other code is unknown, counts as on and counts as igniting, so off is refused while `flame` is 0, as the vendor UI does in any status but off; no code counts as alarm. The hvac action follows the status key | Asked in issue 1. The vendor UI uses another status table for this board, and the vendor UI is wrong for four codes of the AIR-RDS board |

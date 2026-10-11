@@ -116,6 +116,9 @@ def test_readme_describes_every_entity() -> None:
         README
     )
     assert "| ECO-RDS | Written from the module's own web page, not tested |" in README
+    assert "| KTR-AIR BLDC | Written from the module's own web page, not tested." in (
+        README
+    )
     assert (
         "Flue gas temperature"
         not in README.split("## What you get")[1].split("\n## ")[0]

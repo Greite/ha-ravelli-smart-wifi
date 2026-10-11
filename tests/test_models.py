@@ -105,6 +105,31 @@ def test_status_table(
     assert decoded.in_alarm is in_alarm
 
 
+@pytest.mark.parametrize(
+    ("code", "key", "is_on", "is_igniting"),
+    [
+        (0, "off", False, False),
+        # The page of the module names these otherwise for this board, and it
+        # is wrong for four codes of the AIR-RDS board: none is trusted, and
+        # each may be an ignition.
+        (2, "unknown", True, True),
+        (6, "unknown", True, True),
+        (9, "unknown", True, True),
+        (10, "unknown", True, True),
+    ],
+)
+def test_status_table_of_ktr_air_bldc(
+    code: int, key: str, is_on: bool, is_igniting: bool
+) -> None:
+    """Model 8 trusts code 0 only; every other code counts as on."""
+    decoded = state({2: code}, model=8)
+
+    assert decoded.status_key == key
+    assert decoded.is_on is is_on
+    assert decoded.is_igniting is is_igniting
+    assert decoded.in_alarm is False
+
+
 def test_manual_set_point_has_no_temperature() -> None:
     """Raw 41 means manual mode, not 41 degrees."""
     decoded = state({2: 0, 50: 41})
@@ -201,19 +226,22 @@ def test_model_must_be_a_number() -> None:
         StoveState.from_payloads([payload(MAIN, model="7")])
 
 
-def test_only_the_rds_family_is_supported() -> None:
-    """Three model codes, with the categories each one polls."""
-    assert sorted(SUPPORTED_MODELS) == [7, 11, 12]
+def test_supported_models() -> None:
+    """Four model codes, with the categories each one polls."""
+    assert sorted(SUPPORTED_MODELS) == [7, 8, 11, 12]
     assert SUPPORTED_MODELS[7].name == "AIR-RDS"
+    assert SUPPORTED_MODELS[8].name == "KTR-AIR BLDC"
     assert SUPPORTED_MODELS[11].name == "HYDRO-RDS"
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
+    assert SUPPORTED_MODELS[8].categories == (2,)
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water
     assert SUPPORTED_MODELS[11].has_water and not SUPPORTED_MODELS[11].has_ducting
-    assert not SUPPORTED_MODELS[12].has_water
-    assert not SUPPORTED_MODELS[12].has_ducting
+    for code in (8, 12):
+        assert not SUPPORTED_MODELS[code].has_water
+        assert not SUPPORTED_MODELS[code].has_ducting
 
 
 @pytest.mark.parametrize(
@@ -234,6 +262,9 @@ def test_only_the_rds_family_is_supported() -> None:
         (11, 49, 30),
         (11, 49, 81),
         (12, 50, 20),
+        (8, 50, 41),
+        (8, 51, 5),
+        (8, 64, 0x99),
     ],
 )
 def test_valid_writes_pass(model: int, register: int, value: int) -> None:
@@ -269,7 +300,18 @@ def test_out_of_range_writes_are_refused(
 
 @pytest.mark.parametrize(
     ("model", "register"),
-    [(7, 49), (11, 184), (12, 184), (12, 49), (7, 0), (7, 2), (7, 999)],
+    [
+        (7, 49),
+        (11, 184),
+        (12, 184),
+        (12, 49),
+        (8, 73),
+        (8, 74),
+        (8, 184),
+        (7, 0),
+        (7, 2),
+        (7, 999),
+    ],
 )
 def test_registers_outside_the_table_are_refused(model: int, register: int) -> None:
     """Read-only, unknown and other-model registers cannot be written."""

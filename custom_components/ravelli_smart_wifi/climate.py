@@ -42,14 +42,14 @@ DUCTS: dict[str, tuple[int, int]] = {
     "duct_left": (REG_DUCT_LEFT_SETPOINT, REG_DUCT_LEFT_TEMP),
 }
 
-HVAC_ACTIONS: dict[int, HVACAction] = {
-    0: HVACAction.OFF,
-    1: HVACAction.PREHEATING,
-    2: HVACAction.PREHEATING,
-    3: HVACAction.PREHEATING,
-    4: HVACAction.HEATING,
-    6: HVACAction.OFF,
-    7: HVACAction.IDLE,
+HVAC_ACTIONS: dict[str, HVACAction] = {
+    "off": HVACAction.OFF,
+    "ignition": HVACAction.PREHEATING,
+    "waiting_flame": HVACAction.PREHEATING,
+    "flame_present": HVACAction.PREHEATING,
+    "working": HVACAction.HEATING,
+    "final_cleaning": HVACAction.OFF,
+    "eco_stop": HVACAction.IDLE,
 }
 
 
@@ -187,7 +187,7 @@ class RavelliStoveClimate(RavelliPowerClimate):
     @property
     def hvac_action(self) -> HVACAction | None:
         """Return what the stove is doing."""
-        return HVAC_ACTIONS.get(self.coordinator.data.state.status_code)
+        return HVAC_ACTIONS.get(self.coordinator.data.state.status_key)
 
     @property
     def current_temperature(self) -> float | None:

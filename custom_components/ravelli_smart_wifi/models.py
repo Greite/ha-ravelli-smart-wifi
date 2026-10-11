@@ -1,10 +1,11 @@
-"""Register tables and data model of the RDS stove family.
+"""Register tables and data model of the stove boards.
 
 This module imports nothing from Home Assistant.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, time
 from typing import Any
@@ -43,7 +44,7 @@ DUCT_EXTERNAL = 6
 # The module reports 255 when the board has no flame information.
 FLAME_UNSUPPORTED = 255
 
-# Codes read on the display of a real stove. Code 4 is "Travail" and also
+# Codes read on the display of an AIR-RDS stove. Code 4 is "Travail" and also
 # "Modulation". The codes 5 and 8 were never seen; 9 was seen once, with an
 # alarm on the display, and has no key until its meaning is confirmed.
 STATUS_KEYS: dict[int, str] = {
@@ -55,13 +56,18 @@ STATUS_KEYS: dict[int, str] = {
     6: "final_cleaning",
     7: "eco_stop",
 }
+# The page of the module calls 8 and 9 alarms on the RDS boards. Code 9 was
+# seen once with an alarm on the display, 8 never: they are kept to refuse
+# turning on.
+RDS_ALARM_CODES = frozenset({8, 9})
+# A board whose codes were never read on its display. Its page of the module
+# uses another table, and that page is wrong for four codes of the AIR-RDS
+# board: only 0, off in every table, is trusted.
+UNVERIFIED_STATUS_KEYS: dict[int, str] = {0: "off"}
 STATUS_UNKNOWN = "unknown"
-STATUS_IGNITING = frozenset({1, 2, 3})
+KEYS_IGNITING = frozenset({"ignition", "waiting_flame", "flame_present"})
 # Every other code, an unknown one included, counts as on: the safe side.
-STATUS_NOT_ON = frozenset({0, 6, 8, 9})
-# The page of the module calls 8 and 9 alarms. Code 9 was seen once with an
-# alarm on the display, 8 never: they are kept to refuse turning on.
-STATUS_ALARM = frozenset({8, 9})
+KEYS_NOT_ON = frozenset({"off", "final_cleaning"})
 
 # Raw bounds of every writable register, as enforced by the vendor UI.
 WRITE_BOUNDS: dict[int, tuple[int, int]] = {
@@ -131,6 +137,8 @@ class StoveModel:
     name: str
     categories: tuple[int, ...]
     writable: frozenset[int]
+    status_keys: Mapping[int, str]
+    alarm_codes: frozenset[int]
     has_ducting: bool = False
     has_water: bool = False
 
@@ -141,13 +149,28 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         name="AIR-RDS",
         categories=(CATEGORY_MAIN, CATEGORY_DUCTING, CATEGORY_COMFORT),
         writable=_COMMON_WRITABLE | {REG_DUCT_RIGHT_SETPOINT, REG_DUCT_LEFT_SETPOINT},
+        status_keys=STATUS_KEYS,
+        alarm_codes=RDS_ALARM_CODES,
         has_ducting=True,
+    ),
+    # Transcribed from the page of the module: same main and clock registers
+    # as the RDS boards, no comfort settings. Its ducting registers (175, 183
+    # to 193) differ from the RDS ones and are left out.
+    8: StoveModel(
+        code=8,
+        name="KTR-AIR BLDC",
+        categories=(CATEGORY_MAIN,),
+        writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
+        status_keys=UNVERIFIED_STATUS_KEYS,
+        alarm_codes=frozenset(),
     ),
     11: StoveModel(
         code=11,
         name="HYDRO-RDS",
         categories=(CATEGORY_MAIN, CATEGORY_COMFORT),
         writable=_COMMON_WRITABLE | {REG_WATER_SETPOINT},
+        status_keys=STATUS_KEYS,
+        alarm_codes=RDS_ALARM_CODES,
         has_water=True,
     ),
     12: StoveModel(
@@ -155,6 +178,8 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         name="ECO-RDS",
         categories=(CATEGORY_MAIN, CATEGORY_COMFORT),
         writable=_COMMON_WRITABLE,
+        status_keys=STATUS_KEYS,
+        alarm_codes=RDS_ALARM_CODES,
     ),
 }
 
@@ -238,22 +263,31 @@ class StoveState:
     @property
     def status_key(self) -> str:
         """Status as a translation key."""
-        return STATUS_KEYS.get(self.status_code, STATUS_UNKNOWN)
+        model = SUPPORTED_MODELS.get(self.model)
+        keys = model.status_keys if model else UNVERIFIED_STATUS_KEYS
+        return keys.get(self.status_code, STATUS_UNKNOWN)
 
     @property
     def is_on(self) -> bool:
         """Whether the stove is running or about to."""
-        return self.status_code not in STATUS_NOT_ON
+        return self.status_key not in KEYS_NOT_ON and not self.in_alarm
 
     @property
     def is_igniting(self) -> bool:
         """Whether the stove is between the on command and steady work."""
-        return self.status_code in STATUS_IGNITING
+        key = self.status_key
+        model = SUPPORTED_MODELS.get(self.model)
+        if model is None or model.status_keys is UNVERIFIED_STATUS_KEYS:
+            # Any code but off may be an ignition: with no flame, off is
+            # refused, as on the page of the module.
+            return key == STATUS_UNKNOWN
+        return key in KEYS_IGNITING
 
     @property
     def in_alarm(self) -> bool:
         """Whether the status is an alarm status."""
-        return self.status_code in STATUS_ALARM
+        model = SUPPORTED_MODELS.get(self.model)
+        return model is not None and self.status_code in model.alarm_codes
 
     @property
     def has_alarm(self) -> bool:

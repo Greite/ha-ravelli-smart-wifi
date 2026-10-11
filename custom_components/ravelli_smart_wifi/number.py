@@ -53,9 +53,12 @@ async def async_setup_entry(
     entry: RavelliConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create the numbers of one stove."""
+    """Create the numbers the stove model can write."""
+    coordinator = entry.runtime_data
     async_add_entities(
-        RavelliNumber(entry.runtime_data, description) for description in NUMBERS
+        RavelliNumber(coordinator, description)
+        for description in NUMBERS
+        if description.register in coordinator.model.writable
     )
 
 

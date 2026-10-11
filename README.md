@@ -19,6 +19,7 @@ board, not on the commercial name of the stove.
 | AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
+| KTR-AIR BLDC | Written from the module's own web page, not tested. Only the status "Off" is known: every other status shows as unknown and counts as on. Turning off is refused in any status but "Off" while the stove reports no flame |
 | Any other board | Refused at setup |
 
 To find your board, open `http://<address of the module>/` in a browser: the
@@ -44,7 +45,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode, manual mode as preset, and what the stove is doing |
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
-| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop |
+| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: off or unknown |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
 | Sensor "Ambient temperature" | In °C |
 | Sensor "Extractor speed" | In revolutions per minute |
@@ -52,7 +53,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat |
-| Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove |
+| Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC |
 | Switch "Schedule" | Makes the stove follow or ignore the programs it stores |
 | Calendar "Schedule" | Shows when the stove will run by itself |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
