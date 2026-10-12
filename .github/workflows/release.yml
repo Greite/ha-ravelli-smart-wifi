@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # HACS installs from this asset (zip_release in hacs.json): the files of
+      # the integration at the root of the archive. GitHub counts its downloads.
+      - run: git archive --format=zip -o ravelli_smart_wifi.zip "$TAG:custom_components/ravelli_smart_wifi"
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+      - run: gh release upload "$TAG" ravelli_smart_wifi.zip --clobber
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}

@@ -35,11 +35,13 @@ def test_manifest_keys_are_sorted_as_hassfest_requires() -> None:
 
 
 def test_hacs_manifest() -> None:
-    """HACS reads the display name and the minimum Home Assistant version."""
+    """HACS reads the display name, the minimum Home Assistant version, and installs from the release zip."""
     hacs = json.loads((ROOT / "hacs.json").read_text())
 
     assert hacs == {
         "name": "Ravelli Smart Wi-Fi",
         "homeassistant": "2026.9.0",
         "render_readme": True,
+        "zip_release": True,
+        "filename": "ravelli_smart_wifi.zip",
     }
