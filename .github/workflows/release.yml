@@ -17,7 +17,8 @@ jobs:
       - run: git archive --format=zip -o ravelli_smart_wifi.zip "$TAG:custom_components/ravelli_smart_wifi"
         env:
           TAG: ${{ github.event.release.tag_name }}
-      - run: gh release upload "$TAG" ravelli_smart_wifi.zip --clobber
+      # No --clobber: replacing the asset would reset its download count.
+      - run: gh release upload "$TAG" ravelli_smart_wifi.zip
         env:
           TAG: ${{ github.event.release.tag_name }}
           GH_TOKEN: ${{ github.token }}
