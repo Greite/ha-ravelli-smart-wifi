@@ -55,6 +55,9 @@ class FakeModule:
         if model == 11:
             self.categories[2].update({1: 45, 49: 60})
         self.extra: dict[str, Any] = capture["extra"]
+        if model == 8:
+            # A KTR-AIR BLDC stove reported a flame in every phase.
+            self.extra["flame"] = 1
         self.schedule_enabled: bool = capture["schedule"]["enabled"]
         self.programs: list[list[Any]] = capture["schedule"]["programs"]
         self.requests: list[tuple[str, dict[str, str]]] = []

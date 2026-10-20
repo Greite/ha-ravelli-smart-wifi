@@ -106,29 +106,31 @@ def test_status_table(
 
 
 @pytest.mark.parametrize(
-    ("code", "key"),
+    ("code", "key", "is_on", "is_igniting"),
     [
-        # Seen as off, but no code is trusted as off yet.
-        (0, "unknown"),
-        (1, "waiting_start"),
-        (2, "ignition"),
-        (3, "unknown"),
-        (4, "flame_present"),
-        (5, "working"),
-        (6, "unknown"),
-        (7, "final_cleaning"),
-        (8, "eco_stop"),
-        (9, "unknown"),
+        (0, "off", False, False),
+        (1, "waiting_start", True, True),
+        (2, "ignition", True, True),
+        (3, "unknown", True, False),
+        (4, "flame_present", True, True),
+        (5, "working", True, False),
+        (6, "unknown", True, False),
+        # Also the periodic cleaning, which restarts the stove: never off.
+        (7, "final_cleaning", True, False),
+        # Restarts by itself.
+        (8, "eco_stop", True, False),
+        (9, "unknown", True, False),
     ],
 )
-def test_ktr_air_bldc_status_never_means_off(code: int, key: str) -> None:
-    """Model 8 codes read on its remote get a label; none is trusted as off."""
+def test_ktr_air_bldc_status_table(
+    code: int, key: str, is_on: bool, is_igniting: bool
+) -> None:
+    """Model 8 codes read on its remote; only 0 is off."""
     decoded = state({2: code}, model=8)
 
     assert decoded.status_key == key
-    assert decoded.is_on is True
-    # Any code may be an ignition: off waits for the flame, as on the page.
-    assert decoded.is_igniting is True
+    assert decoded.is_on is is_on
+    assert decoded.is_igniting is is_igniting
     assert decoded.in_alarm is False
 
 

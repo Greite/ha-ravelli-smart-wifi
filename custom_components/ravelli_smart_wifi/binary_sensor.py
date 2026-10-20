@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import RavelliConfigEntry, RavelliCoordinator, RavelliData
 from .entity import RavelliEntity
+from .models import StoveModel
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -24,6 +25,7 @@ class RavelliBinarySensorDescription(BinarySensorEntityDescription):
 
     is_on_fn: Callable[[RavelliData], bool]
     exists_fn: Callable[[RavelliData], bool] = lambda data: True
+    enabled_fn: Callable[[StoveModel], bool] = lambda model: True
 
 
 BINARY_SENSORS: tuple[RavelliBinarySensorDescription, ...] = (
@@ -36,6 +38,7 @@ BINARY_SENSORS: tuple[RavelliBinarySensorDescription, ...] = (
         key="flame",
         is_on_fn=lambda data: bool(data.state.flame),
         exists_fn=lambda data: data.state.flame is not None,
+        enabled_fn=lambda model: model.flame_shows_fire,
     ),
     RavelliBinarySensorDescription(
         key="firmware_update",
@@ -73,6 +76,9 @@ class RavelliBinarySensor(RavelliEntity, BinarySensorEntity):
         """Keep the description."""
         super().__init__(coordinator, description.key)
         self.entity_description = description
+        self._attr_entity_registry_enabled_default = description.enabled_fn(
+            coordinator.model
+        )
 
     @property
     def is_on(self) -> bool:

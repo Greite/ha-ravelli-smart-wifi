@@ -1,12 +1,10 @@
 """Tests for the ducting and water thermostats."""
 
-from dataclasses import replace
 from typing import Any
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -15,7 +13,6 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.ravelli_smart_wifi.const import DOMAIN
-from custom_components.ravelli_smart_wifi.models import SUPPORTED_MODELS
 
 from .fake_module import HOST, MAC, PATH_GET, PATH_SET, FakeModule
 from .helpers import entity_id_for
@@ -205,7 +202,7 @@ async def test_stove_without_ducting_or_water(
 async def test_ktr_air_bldc(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """Model 8 has no comfort settings, and code 0 is not shown as off."""
+    """Model 8 has no comfort settings; code 0 is off."""
     module = await setup_model(hass, aioclient_mock, 8)
     registry = er.async_get(hass)
 
@@ -218,10 +215,10 @@ async def test_ktr_air_bldc(
     assert module.count(PATH_GET, key="020", category="11") == 0
 
     state = climate(hass, "stove")
-    assert state.state == "heat"
-    assert state.attributes.get("hvac_action") is None
+    assert state.state == "off"
+    assert state.attributes["hvac_action"] == "off"
     assert state.attributes["current_temperature"] == 21
-    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == ("unknown")
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "off"
     fan = hass.states.get(entity_id_for(hass, "sensor", "front_fan"))
     assert fan.state == "auto"
     assert fan.attributes["raw_value"] == 6
@@ -244,7 +241,7 @@ async def test_ktr_air_bldc_status_is_shown_and_stays_on(
     key: str,
     action: str,
 ) -> None:
-    """Codes read on its remote are labelled; the thermostat never shows off."""
+    """Every code but 0 keeps the thermostat on, final cleaning included."""
     module = await setup_model(hass, aioclient_mock, 8)
     module.common[2] = status
     await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
@@ -266,33 +263,13 @@ async def test_front_fan_is_ktr_air_bldc_only(
     assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
 
 
-@pytest.mark.parametrize("status", [0, 6, 7])
-async def test_ktr_air_bldc_turn_on_is_refused(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+@pytest.mark.parametrize(
+    ("status", "sent"), [(0, 1), (1, 0), (6, 0), (7, 0), (8, 0), (42, 0)]
+)
+async def test_ktr_air_bldc_turns_on_from_code_0_only(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, sent: int
 ) -> None:
-    """No code of this board is trusted as off: Home Assistant cannot tell."""
-    module = await setup_model(hass, aioclient_mock, 8)
-    module.common[2] = status
-
-    with pytest.raises(ServiceValidationError) as err:
-        await call(hass, "stove", "turn_on")
-
-    assert err.value.translation_key == "turn_on_not_verified"
-    assert module.count(PATH_GET, key="022") == 0
-
-
-@pytest.mark.parametrize(("status", "sent"), [(0, 1), (6, 0), (7, 0), (8, 0)])
-async def test_ktr_air_bldc_trusted_off_is_code_0_only(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    monkeypatch: pytest.MonkeyPatch,
-    status: int,
-    sent: int,
-) -> None:
-    """Once off is trusted, final cleaning (7) and eco stop still count as on."""
-    monkeypatch.setitem(
-        SUPPORTED_MODELS, 8, replace(SUPPORTED_MODELS[8], off_codes=frozenset({0}))
-    )
+    """Final cleaning (7), eco stop (8) and unknown codes count as on."""
     module = await setup_model(hass, aioclient_mock, 8)
     module.common[2] = status
 
@@ -301,54 +278,21 @@ async def test_ktr_air_bldc_trusted_off_is_code_0_only(
     assert module.count(PATH_GET, key="022", status="1") == sent
 
 
-async def test_ktr_air_bldc_schedule_cannot_start_the_stove(
+async def test_ktr_air_bldc_flame_is_disabled_by_default(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """A program can start the stove: only what stops it is sent."""
-    module = await setup_model(hass, aioclient_mock, 8)
-    switch = entity_id_for(hass, "switch", "schedule")
-    device = dr.async_get(hass).async_get_device_by_identifier(
-        (DOMAIN, MAC), hass.config_entries.async_entries(DOMAIN)[0].entry_id
-    )
+    """The board reports a flame in every phase, eco stop included."""
+    await setup_model(hass, aioclient_mock, 8)
 
-    await hass.services.async_call(
-        "switch", "turn_off", {"entity_id": switch}, blocking=True
-    )
-    assert module.count(PATH_GET, key="032") == 1
-    assert module.schedule_enabled is False
-
-    with pytest.raises(ServiceValidationError) as err:
-        await hass.services.async_call(
-            "switch", "turn_on", {"entity_id": switch}, blocking=True
-        )
-    assert err.value.translation_key == "schedule_not_verified"
-
-    with pytest.raises(ServiceValidationError) as err:
-        await hass.services.async_call(
-            DOMAIN,
-            "set_schedule_program",
-            {
-                "device_id": device.id,
-                "slot": 6,
-                "name": "Test",
-                "start": "06:30:00",
-                "end": "08:00:00",
-                "temperature": 21,
-                "power": 3,
-                "weekdays": ["mon"],
-            },
-            blocking=True,
-        )
-    assert err.value.translation_key == "schedule_not_verified"
-    assert module.count(PATH_GET, key="032") == 1
-    assert module.schedule_enabled is False
+    entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
+    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
-@pytest.mark.parametrize("status", [0, 2, 5, 6, 7, 42])
+@pytest.mark.parametrize("status", [1, 2, 4])
 async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """Any code may be an ignition: like the page, wait for the flame."""
+    """Before the flame, like the page and the RDS boards, off waits."""
     module = await setup_model(hass, aioclient_mock, 8)
     module.common[2] = status
     module.extra["flame"] = 0

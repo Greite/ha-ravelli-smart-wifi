@@ -59,10 +59,10 @@ STATUS_KEYS: dict[int, str] = {
     7: "eco_stop",
 }
 # Codes of a KTR-AIR BLDC stove, read on its remote control. Code 8 is eco
-# stop, which restarts by itself through 1, 2 and 4. Code 0 was seen as off
-# but has no key: no code is trusted as off yet (see off_codes). Code 7 must
-# never count as off: the periodic cleaning cycle restarts the stove.
+# stop, which restarts by itself through 1, 2 and 4. Code 7 must never count
+# as off: the periodic cleaning cycle restarts the stove.
 KTR_STATUS_KEYS: dict[int, str] = {
+    0: "off",
     1: "waiting_start",
     2: "ignition",
     4: "flame_present",
@@ -75,7 +75,9 @@ KTR_STATUS_KEYS: dict[int, str] = {
 # turning on.
 RDS_ALARM_CODES = frozenset({8, 9})
 STATUS_UNKNOWN = "unknown"
-KEYS_IGNITING = frozenset({"ignition", "waiting_flame", "flame_present"})
+KEYS_IGNITING = frozenset(
+    {"waiting_start", "ignition", "waiting_flame", "flame_present"}
+)
 
 # Raw bounds of every writable register, as enforced by the vendor UI.
 WRITE_BOUNDS: dict[int, tuple[int, int]] = {
@@ -151,18 +153,14 @@ class StoveModel:
     has_water: bool = False
     # Codes that mean the stove is not on, per board: a key such as
     # final_cleaning names different codes on different boards. Every other
-    # code, an unknown one included, counts as on: the safe side. Empty while
-    # no code of the board is trusted as off: every code counts as on and as
-    # a possible ignition, and nothing may start it.
+    # code, an unknown one included, counts as on: the safe side.
     off_codes: frozenset[int] = frozenset({0, 6})
     ambient_register: int = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
     has_front_fan: bool = False
-
-    @property
-    def off_verified(self) -> bool:
-        """Whether a status code of the board is trusted as off."""
-        return bool(self.off_codes)
+    # False when the board reports a flame with no fire: its flame sensor
+    # is disabled by default.
+    flame_shows_fire: bool = True
 
 
 SUPPORTED_MODELS: dict[int, StoveModel] = {
@@ -187,10 +185,11 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
         status_keys=KTR_STATUS_KEYS,
         alarm_codes=frozenset(),
-        off_codes=frozenset(),
+        off_codes=frozenset({0}),
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
         has_front_fan=True,
+        flame_shows_fire=False,
     ),
     11: StoveModel(
         code=11,
@@ -307,10 +306,7 @@ class StoveState:
     @property
     def is_igniting(self) -> bool:
         """Whether the stove is between the on command and steady work."""
-        model = SUPPORTED_MODELS.get(self.model)
-        if model is None or not model.off_verified:
-            # Any code may be an ignition: with no flame, off is refused, as
-            # on the page of the module.
+        if SUPPORTED_MODELS.get(self.model) is None:
             return True
         return self.status_key in KEYS_IGNITING
 

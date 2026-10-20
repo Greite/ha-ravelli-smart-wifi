@@ -135,7 +135,7 @@ def test_readme_describes_every_entity() -> None:
         README
     )
     assert "| ECO-RDS | Written from the module's own web page, not tested |" in README
-    assert "No status code is trusted as off yet" in README
+    assert "Only the code 0 counts as off" in README
     assert 'Sensor "Front fan"' in README
     assert (
         "Flue gas temperature"
