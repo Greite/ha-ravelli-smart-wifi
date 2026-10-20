@@ -227,8 +227,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             self._reported_model = state.model
             self._check_model(state.model)
             if on:
-                if not self.model.status_keys:
-                    # No status of this board was read on a stove: Home
+                if not self.model.off_verified:
+                    # No status code of this board is trusted as off: Home
                     # Assistant cannot tell whether it is off.
                     raise _invalid("turn_on_not_verified")
                 if state.has_alarm:
@@ -247,7 +247,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
     def _check_schedule_start(self) -> None:
         """Refuse what lets a program start a board with no known status."""
-        if not self.model.status_keys:
+        if not self.model.off_verified:
             raise _invalid("schedule_not_verified")
 
     async def async_set_schedule_enabled(self, enabled: bool) -> None:

@@ -180,6 +180,12 @@
       "extractor_speed": {
         "name": "Vitesse de l'extracteur"
       },
+      "front_fan": {
+        "name": "Ventilation frontale",
+        "state": {
+          "auto": "Auto"
+        }
+      },
       "status": {
         "name": "État",
         "state": {
@@ -240,7 +246,7 @@
       "message": "Sélectionnez au moins un jour de la semaine."
     },
     "schedule_not_verified": {
-      "message": "Le programme horaire de ce poêle ne peut pas encore être activé ni modifié depuis Home Assistant : ses codes d'état n'ont jamais été vérifiés sur un vrai poêle, et un programme peut l'allumer. Désactiver le programme horaire et supprimer des programmes restent possibles."
+      "message": "Le programme horaire de ce poêle ne peut pas encore être activé ni modifié depuis Home Assistant : son code d'état à l'arrêt n'a jamais été confirmé sur un vrai poêle, et un programme peut l'allumer. Désactiver le programme horaire et supprimer des programmes restent possibles."
     },
     "schedule_power_range": {
       "message": "La puissance doit être comprise entre 1 et 5."
@@ -267,7 +273,7 @@
       "message": "Le poêle signale une alarme. Acquittez-la sur le poêle lui-même, ou éteignez le poêle depuis Home Assistant, puis rallumez-le."
     },
     "turn_on_not_verified": {
-      "message": "L'allumage de ce poêle depuis Home Assistant n'est pas encore disponible : ses codes d'état n'ont jamais été vérifiés sur un vrai poêle, donc Home Assistant ne sait pas s'il est éteint. Allumez-le depuis le poêle lui-même ou depuis la page web du module."
+      "message": "L'allumage de ce poêle depuis Home Assistant n'est pas encore disponible : son code d'état à l'arrêt n'a jamais été confirmé sur un vrai poêle, donc Home Assistant ne sait pas s'il est éteint. Allumez-le depuis le poêle lui-même ou depuis la page web du module."
     },
     "unsupported_model": {
       "message": "Le modèle de poêle {model} n'est pas encore pris en charge. Demandez-le sur {issue_url}."

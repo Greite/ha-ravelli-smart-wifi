@@ -180,6 +180,12 @@
       "extractor_speed": {
         "name": "Extractor speed"
       },
+      "front_fan": {
+        "name": "Front fan",
+        "state": {
+          "auto": "Auto"
+        }
+      },
       "status": {
         "name": "Status",
         "state": {
@@ -240,7 +246,7 @@
       "message": "Select at least one day of the week."
     },
     "schedule_not_verified": {
-      "message": "The schedule of this stove cannot be turned on or edited from Home Assistant yet: its status codes were never checked on a real stove, and a program can start it. Turning the schedule off and deleting programs still work."
+      "message": "The schedule of this stove cannot be turned on or edited from Home Assistant yet: its status code when it is off was never confirmed on a real stove, and a program can start it. Turning the schedule off and deleting programs still work."
     },
     "schedule_power_range": {
       "message": "The power level must be between 1 and 5."
@@ -267,7 +273,7 @@
       "message": "The stove reports an alarm. Acknowledge it on the stove itself, or turn the stove off from Home Assistant, then turn it on."
     },
     "turn_on_not_verified": {
-      "message": "Turning this stove on from Home Assistant is not available yet: its status codes were never checked on a real stove, so Home Assistant cannot tell whether it is off. Turn it on from the stove itself or from the web page of the module."
+      "message": "Turning this stove on from Home Assistant is not available yet: its status code when it is off was never confirmed on a real stove, so Home Assistant cannot tell whether it is off. Turn it on from the stove itself or from the web page of the module."
     },
     "unsupported_model": {
       "message": "Stove model {model} is not supported yet. Ask for it at {issue_url}."

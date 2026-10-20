@@ -49,6 +49,7 @@ ENTITIES = {
         "alarm",
         "ambient_temperature",
         "extractor_speed",
+        "front_fan",
         "status",
         "wifi_signal",
     },

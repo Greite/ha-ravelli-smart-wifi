@@ -35,7 +35,7 @@ board, which uses the same main and clock registers (section 12).
 | Model code | Vendor name | Status |
 |---|---|---|
 | 7 | AIR-RDS | Verified on real hardware |
-| 8 | KTR-AIR BLDC | Transcribed from the vendor UI, untested; no status code is known and turning on is refused |
+| 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status labels, ambient temperature and front fan read on a stove by a user; no code is trusted as off and turning on is refused |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
 | 12 | ECO-RDS | Transcribed from the vendor UI, untested |
 
@@ -442,3 +442,4 @@ Not verified:
 | Off command with an alarm reported | Sent even when the stove is stopped | The on command is refused in that state; without it Home Assistant had no way out |
 | Brand images | Shipped in the `brand` folder of the integration: icon, logo and a dark logo, each in two sizes | Asked by the owner after the installation; Home Assistant reads this folder for custom integrations |
 | KTR-AIR BLDC (model 8) | Supported, transcribed from the vendor UI: category 2 only, set point, power and clock writable, no comfort settings, ducting (registers 175, 183 to 193) left out. Status table per model: this board has none, since no code was read on its display. Every code is unknown, counts as on and counts as igniting, so off is refused while `flame` is 0, as the vendor UI does in any status but off; no code counts as alarm. Nothing that can start the stove is sent until codes are read on a stove: on is refused (`turn_on_not_verified`), and so are turning the schedule on and storing a program (`schedule_not_verified`); turning the schedule off and deleting a program are sent. The hvac action follows the status key | Asked in issue 1. The vendor UI uses another status table for this board, and the vendor UI is wrong for four codes of the AIR-RDS board |
+| KTR-AIR BLDC status, ambient and front fan | Status keys 2 ignition, 4 flame present, 5 working, 7 final cleaning; 0, 1, 3 and 6 have no key. A model flag `off_verified`, false on this board, now carries the safety rules that the empty table used to carry: every code counts as on and as igniting, and turning on and the schedule stay refused. Code 7 counts as on: the periodic fire pot cleaning restarts the stove and may share it. Ambient temperature is register 6 in whole degrees, 0 is no value. Category 6 is polled for the front fan, register 187: 0 to 5, 6 is auto; read-only sensor | Readings of a user in issue 1, remote control and vendor cloud, firmware 0.51. Eco stop exists on this stove (comfort climate in its manual) but was never seen, and restarts by itself: no code may show off before it is identified |

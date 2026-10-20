@@ -24,7 +24,13 @@ from homeassistant.helpers.typing import StateType
 
 from .coordinator import RavelliConfigEntry, RavelliCoordinator, RavelliData
 from .entity import RavelliEntity
-from .models import REG_ALARM, STATUS_KEYS, STATUS_UNKNOWN
+from .models import (
+    REG_ALARM,
+    REG_KTR_FRONT_FAN,
+    STATUS_KEYS,
+    STATUS_UNKNOWN,
+    StoveModel,
+)
 
 ALARM_NONE = "none"
 
@@ -49,6 +55,7 @@ class RavelliSensorDescription(SensorEntityDescription):
 
     value_fn: Callable[[RavelliData], StateType]
     raw_fn: Callable[[RavelliData], int | None] | None = None
+    exists_fn: Callable[[StoveModel], bool] = lambda model: True
 
 
 SENSORS: tuple[RavelliSensorDescription, ...] = (
@@ -79,6 +86,14 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
         value_fn=lambda data: data.state.extractor_speed,
     ),
     RavelliSensorDescription(
+        key="front_fan",
+        device_class=SensorDeviceClass.ENUM,
+        options=["0", "1", "2", "3", "4", "5", "auto"],
+        value_fn=lambda data: data.state.front_fan,
+        raw_fn=lambda data: data.state.raw(REG_KTR_FRONT_FAN),
+        exists_fn=lambda model: model.has_front_fan,
+    ),
+    RavelliSensorDescription(
         key="wifi_signal",
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
@@ -96,8 +111,11 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Create the sensors of one stove."""
+    coordinator = entry.runtime_data
     async_add_entities(
-        RavelliSensor(entry.runtime_data, description) for description in SENSORS
+        RavelliSensor(coordinator, description)
+        for description in SENSORS
+        if description.exists_fn(coordinator.model)
     )
 
 
@@ -120,7 +138,7 @@ class RavelliSensor(RavelliEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Expose the raw code of the status and of the alarm."""
+        """Expose the raw value of the status, the alarm and the front fan."""
         if self.entity_description.raw_fn is None:
             return None
         return {"raw_value": self.entity_description.raw_fn(self.coordinator.data)}
