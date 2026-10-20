@@ -30,6 +30,8 @@ REG_COMFORT_DELAY = 73
 REG_COMFORT_DELTA = 74
 REG_DUCT_RIGHT_SETPOINT = 184
 REG_DUCT_LEFT_SETPOINT = 185
+REG_KTR_AMBIENT_TEMP = 6
+REG_KTR_FRONT_FAN = 187
 
 CATEGORY_MAIN = 2
 CATEGORY_DUCTING = 6
@@ -55,6 +57,16 @@ STATUS_KEYS: dict[int, str] = {
     4: "working",
     6: "final_cleaning",
     7: "eco_stop",
+}
+# Codes of a KTR-AIR BLDC stove, read on its remote control. Codes 0 and 1
+# were also seen but have no key: eco stop was never observed on this board
+# and may share one of them, and eco stop restarts by itself. Code 7 counts
+# as on for the same reason: the periodic cleaning cycle restarts the stove.
+KTR_STATUS_KEYS: dict[int, str] = {
+    2: "ignition",
+    4: "flame_present",
+    5: "working",
+    7: "final_cleaning",
 }
 # The page of the module calls 8 and 9 alarms on the RDS boards. Code 9 was
 # seen once with an alarm on the display, 8 never: they are kept to refuse
@@ -137,6 +149,12 @@ class StoveModel:
     alarm_codes: frozenset[int]
     has_ducting: bool = False
     has_water: bool = False
+    # False while no status code of the board is trusted as off: every code
+    # counts as on and as a possible ignition, and nothing may start it.
+    off_verified: bool = True
+    ambient_register: int = REG_AMBIENT_TEMP
+    ambient_divisor: int = 2
+    has_front_fan: bool = False
 
 
 SUPPORTED_MODELS: dict[int, StoveModel] = {
@@ -151,16 +169,20 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
     ),
     # Transcribed from the page of the module: same main and clock registers
     # as the RDS boards, no comfort settings. Its ducting registers (175, 183
-    # to 193) differ from the RDS ones and are left out. No status code was
-    # read on its display, and the page is wrong for four codes of the
-    # AIR-RDS board: no code has a meaning, and turning on is refused.
+    # to 193) differ from the RDS ones; only the front fan (187) is read.
+    # Ambient temperature, status codes and front fan were read on a real
+    # stove; no code is trusted as off, so turning on stays refused.
     8: StoveModel(
         code=8,
         name="KTR-AIR BLDC",
-        categories=(CATEGORY_MAIN,),
+        categories=(CATEGORY_MAIN, CATEGORY_DUCTING),
         writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
-        status_keys={},
+        status_keys=KTR_STATUS_KEYS,
         alarm_codes=frozenset(),
+        off_verified=False,
+        ambient_register=REG_KTR_AMBIENT_TEMP,
+        ambient_divisor=1,
+        has_front_fan=True,
     ),
     11: StoveModel(
         code=11,
@@ -269,13 +291,16 @@ class StoveState:
     @property
     def is_on(self) -> bool:
         """Whether the stove is running or about to."""
+        model = SUPPORTED_MODELS.get(self.model)
+        if model is not None and not model.off_verified:
+            return True
         return self.status_key not in KEYS_NOT_ON and not self.in_alarm
 
     @property
     def is_igniting(self) -> bool:
         """Whether the stove is between the on command and steady work."""
         model = SUPPORTED_MODELS.get(self.model)
-        if model is None or not model.status_keys:
+        if model is None or not model.off_verified:
             # Any code may be an ignition: with no flame, off is refused, as
             # on the page of the module.
             return True
@@ -295,8 +320,19 @@ class StoveState:
     @property
     def ambient_temperature(self) -> float | None:
         """Ambient temperature in degrees Celsius."""
-        raw = self.raw(REG_AMBIENT_TEMP)
-        return raw / 2 if raw else None
+        model = SUPPORTED_MODELS.get(self.model)
+        if model is None:
+            return None
+        raw = self.raw(model.ambient_register)
+        return raw / model.ambient_divisor if raw else None
+
+    @property
+    def front_fan(self) -> str | None:
+        """Front fan setting: 0 to 5, or auto. Raw 6 was read as AUTO."""
+        raw = self.raw(REG_KTR_FRONT_FAN)
+        if raw == 6:
+            return "auto"
+        return str(raw) if raw is not None and 0 <= raw <= 5 else None
 
     @property
     def is_manual(self) -> bool:

@@ -19,7 +19,7 @@ board, not on the commercial name of the stove.
 | AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
-| KTR-AIR BLDC | Written from the module's own web page, not tested. No status code of this board was checked on a real stove: the status shows as unknown, the thermostat always shows heat, and turning on, turning the schedule on and storing a program are refused. Turning off is sent, except while the stove reports no flame; turning the schedule off and deleting programs work |
+| KTR-AIR BLDC | Written from the module's own web page; status, ambient temperature and front fan checked by a user on a real stove, firmware 0.51. No status code is trusted as off yet: the thermostat always shows heat, and turning on, turning the schedule on and storing a program are refused. Turning off is sent, except while the stove reports no flame; turning the schedule off and deleting programs work |
 | Any other board | Refused at setup |
 
 To find your board, open `http://<address of the module>/` in a browser: the
@@ -45,9 +45,10 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode, manual mode as preset, and what the stove is doing |
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
-| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: always unknown, with the raw code as attribute |
+| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: ignition, flame present, working and final cleaning; the other codes, off included, show as unknown until eco stop is identified on that board. The raw code is an attribute |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
-| Sensor "Ambient temperature" | In °C |
+| Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC, in whole degrees, and empty while the stove reports none |
+| Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only |
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
 | Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it |

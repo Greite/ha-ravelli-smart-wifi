@@ -47,6 +47,11 @@ class FakeModule:
         }
         if model != 7:
             del self.categories[6]
+        if model == 8:
+            # Read on a KTR-AIR BLDC stove: register 0 stays at 0, the
+            # ambient temperature is register 6, the front fan register 187.
+            self.categories[2].update({0: 0, 6: 21})
+            self.categories[6] = {175: 3, 183: 20, 184: 20, 185: 20, 187: 6}
         if model == 11:
             self.categories[2].update({1: 45, 49: 60})
         self.extra: dict[str, Any] = capture["extra"]

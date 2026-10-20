@@ -50,6 +50,9 @@
       "extractor_speed": {
         "default": "mdi:fan"
       },
+      "front_fan": {
+        "default": "mdi:fan"
+      },
       "status": {
         "default": "mdi:fireplace"
       }

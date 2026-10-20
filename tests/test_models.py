@@ -105,16 +105,48 @@ def test_status_table(
     assert decoded.in_alarm is in_alarm
 
 
-@pytest.mark.parametrize("code", [0, 2, 6, 9, 10])
-def test_ktr_air_bldc_has_no_status_meaning(code: int) -> None:
-    """No code of model 8 was read on its display: each is unknown and on."""
+@pytest.mark.parametrize(
+    ("code", "key"),
+    [
+        # Seen, but eco stop was not: it may share one of them.
+        (0, "unknown"),
+        (1, "unknown"),
+        (2, "ignition"),
+        (3, "unknown"),
+        (4, "flame_present"),
+        (5, "working"),
+        (6, "unknown"),
+        (7, "final_cleaning"),
+        (9, "unknown"),
+    ],
+)
+def test_ktr_air_bldc_status_never_means_off(code: int, key: str) -> None:
+    """Model 8 codes read on its remote get a label; none is trusted as off."""
     decoded = state({2: code}, model=8)
 
-    assert decoded.status_key == "unknown"
+    assert decoded.status_key == key
     assert decoded.is_on is True
     # Any code may be an ignition: off waits for the flame, as on the page.
     assert decoded.is_igniting is True
     assert decoded.in_alarm is False
+
+
+@pytest.mark.parametrize(
+    ("registers", "expected"), [({0: 44, 6: 21}, 21.0), ({0: 44, 6: 0}, None)]
+)
+def test_ktr_air_bldc_ambient_is_register_6_in_degrees(
+    registers: dict[int, int], expected: float | None
+) -> None:
+    """Register 0 stays at 0 on model 8; register 6 matches its remote."""
+    assert state({2: 5, **registers}, model=8).ambient_temperature == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"), [(0, "0"), (3, "3"), (5, "5"), (6, "auto"), (7, None)]
+)
+def test_front_fan(raw: int, expected: str | None) -> None:
+    """Raw 6 was read as AUTO on the remote; other values are the speed."""
+    assert state({2: 5, 187: raw}, model=8).front_fan == expected
 
 
 def test_manual_set_point_has_no_temperature() -> None:
@@ -221,7 +253,7 @@ def test_supported_models() -> None:
     assert SUPPORTED_MODELS[11].name == "HYDRO-RDS"
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
-    assert SUPPORTED_MODELS[8].categories == (2,)
+    assert SUPPORTED_MODELS[8].categories == (2, 6)
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water

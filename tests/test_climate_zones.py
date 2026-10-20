@@ -203,7 +203,7 @@ async def test_stove_without_ducting_or_water(
 async def test_ktr_air_bldc(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """Model 8 has no comfort settings, and no status is interpreted."""
+    """Model 8 has no comfort settings, and code 0 is not shown as off."""
     module = await setup_model(hass, aioclient_mock, 8)
     registry = er.async_get(hass)
 
@@ -218,15 +218,57 @@ async def test_ktr_air_bldc(
     state = climate(hass, "stove")
     assert state.state == "heat"
     assert state.attributes.get("hvac_action") is None
+    assert state.attributes["current_temperature"] == 21
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == ("unknown")
+    fan = hass.states.get(entity_id_for(hass, "sensor", "front_fan"))
+    assert fan.state == "auto"
+    assert fan.attributes["raw_value"] == 6
 
 
-@pytest.mark.parametrize("status", [0, 6])
+@pytest.mark.parametrize(
+    ("status", "key", "action"),
+    [
+        (2, "ignition", "preheating"),
+        (5, "working", "heating"),
+        (7, "final_cleaning", "off"),
+    ],
+)
+async def test_ktr_air_bldc_status_is_shown_and_stays_on(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    status: int,
+    key: str,
+    action: str,
+) -> None:
+    """Codes read on its remote are labelled; the thermostat never shows off."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    module.common[2] = status
+    await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == key
+    state = climate(hass, "stove")
+    assert state.state == "heat"
+    assert state.attributes["hvac_action"] == action
+
+
+async def test_front_fan_is_ktr_air_bldc_only(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Register 187 has no known meaning on the other boards."""
+    await setup_model(hass, aioclient_mock, 7)
+
+    registry = er.async_get(hass)
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
+
+
+@pytest.mark.parametrize("status", [0, 6, 7])
 async def test_ktr_air_bldc_turn_on_is_refused(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """Without a status read on its display, Home Assistant cannot tell off."""
+    """No code of this board is trusted as off: Home Assistant cannot tell."""
     module = await setup_model(hass, aioclient_mock, 8)
-    module.categories[2][2] = status
+    module.common[2] = status
 
     with pytest.raises(ServiceValidationError) as err:
         await call(hass, "stove", "turn_on")
@@ -278,13 +320,13 @@ async def test_ktr_air_bldc_schedule_cannot_start_the_stove(
     assert module.schedule_enabled is False
 
 
-@pytest.mark.parametrize("status", [0, 2, 5, 6, 42])
+@pytest.mark.parametrize("status", [0, 2, 5, 6, 7, 42])
 async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
     """Any code may be an ignition: like the page, wait for the flame."""
     module = await setup_model(hass, aioclient_mock, 8)
-    module.categories[2][2] = status
+    module.common[2] = status
     module.extra["flame"] = 0
 
     with pytest.raises(ServiceValidationError) as err:
