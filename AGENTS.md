@@ -27,7 +27,7 @@ uv run pytest tests/test_coordinator.py -k turn_off            # one area
 - Every text shown to the user lives in `translations/en.json` and `fr.json`; `tests/test_translations.py` keeps them in step. `tests/test_documentation.py` checks the claims of the README: update both together.
 - Only what was read on a real stove counts as a hardware fact, with its row in `docs/hardware-verification.md`. Never give a meaning to a status code that was not seen (5, 8, 9): it stays `unknown` and counts as on.
 - Code, comments and docs in English (public repo).
-- No name, hostname, private address, network name, MAC address or real program name in a file or a commit message. Examples use `192.0.2.x` and `aa:bb:cc:dd:ee:ff`. Answers of a real module hold such values: replace them before they enter a fixture.
+- No name, hostname, private address, network name, MAC address or real program name in a file or a commit message. Examples use `192.0.2.x` and `aa:bb:cc:dd:ee:ff`. Answers of a real module hold such values: replace them before they enter a fixture. One exception: the "Thanks" section of the README names contributors by their GitHub handle, only once they agreed to it.
 - Git: `main` only; `feature/*` and `fix/*` branches merged with `--ff-only`; conventional commits in English, no attribution trailer.
 - Release: CalVer. `manifest.json` carries `YYYY.MM.N` (`YYYY.MM.NbN` for a beta, published as a GitHub pre-release); the annotated tag `vYYYY.MM.N` is the same version, pushed once the `Test` and `Validate` workflows are green, then the GitHub release is published. The `Release` workflow attaches `ravelli_smart_wifi.zip`, which the Marketplace (HACS before Home Assistant 2026.11) installs (`zip_release`): a release without it cannot be installed.
 

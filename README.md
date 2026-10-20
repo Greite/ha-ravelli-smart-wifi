@@ -214,6 +214,12 @@ uv run pytest
 Tests run against a simulator of the module, `tests/fake_module.py`. No stove
 is needed.
 
+## Thanks
+
+Thanks to [@nicolasquenard-cpu](https://github.com/nicolasquenard-cpu) for the
+readings on a Ravelli Flexi 7 that made the KTR-AIR BLDC support possible
+([#1](https://github.com/Greite/ha-ravelli-smart-wifi/issues/1)).
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
