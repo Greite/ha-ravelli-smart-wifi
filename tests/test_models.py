@@ -108,15 +108,16 @@ def test_status_table(
 @pytest.mark.parametrize(
     ("code", "key"),
     [
-        # Seen, but eco stop was not: it may share one of them.
+        # Seen as off, but no code is trusted as off yet.
         (0, "unknown"),
-        (1, "unknown"),
+        (1, "waiting_start"),
         (2, "ignition"),
         (3, "unknown"),
         (4, "flame_present"),
         (5, "working"),
         (6, "unknown"),
         (7, "final_cleaning"),
+        (8, "eco_stop"),
         (9, "unknown"),
     ],
 )

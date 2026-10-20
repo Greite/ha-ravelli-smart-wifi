@@ -25,6 +25,7 @@ from homeassistant.helpers.typing import StateType
 from .coordinator import RavelliConfigEntry, RavelliCoordinator, RavelliData
 from .entity import RavelliEntity
 from .models import (
+    KTR_STATUS_KEYS,
     REG_ALARM,
     REG_KTR_FRONT_FAN,
     STATUS_KEYS,
@@ -62,7 +63,7 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
     RavelliSensorDescription(
         key="status",
         device_class=SensorDeviceClass.ENUM,
-        options=list(STATUS_KEYS.values()),
+        options=list(dict.fromkeys([*STATUS_KEYS.values(), *KTR_STATUS_KEYS.values()])),
         value_fn=_status,
         raw_fn=lambda data: data.state.status_code,
     ),

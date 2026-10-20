@@ -25,7 +25,7 @@ uv run pytest tests/test_coordinator.py -k turn_off            # one area
 
 - Write the failing test first, at the HTTP level through the simulator: change the simulator, never mock the client.
 - Every text shown to the user lives in `translations/en.json` and `fr.json`; `tests/test_translations.py` keeps them in step. `tests/test_documentation.py` checks the claims of the README: update both together.
-- Only what was read on a real stove counts as a hardware fact, with its row in `docs/hardware-verification.md`. Never give a meaning to a status code that was not seen (5, 8, 9): it stays `unknown` and counts as on.
+- Only what was read on a real stove counts as a hardware fact, with its row in `docs/hardware-verification.md`. Never give a meaning to a status code that was not seen on that board (5, 8, 9 on AIR-RDS): it stays `unknown` and counts as on. Status tables are per board: a code read on one board says nothing about another.
 - Code, comments and docs in English (public repo).
 - No name, hostname, private address, network name, MAC address or real program name in a file or a commit message. Examples use `192.0.2.x` and `aa:bb:cc:dd:ee:ff`. Answers of a real module hold such values: replace them before they enter a fixture. One exception: the "Thanks" section of the README names contributors by their GitHub handle, only once they agreed to it.
 - Git: `main` only; `feature/*` and `fix/*` branches merged with `--ff-only`; conventional commits in English, no attribution trailer.

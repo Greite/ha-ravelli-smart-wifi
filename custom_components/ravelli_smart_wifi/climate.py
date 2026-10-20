@@ -50,6 +50,7 @@ HVAC_ACTIONS: dict[str, HVACAction] = {
     "working": HVACAction.HEATING,
     "final_cleaning": HVACAction.OFF,
     "eco_stop": HVACAction.IDLE,
+    "waiting_start": HVACAction.PREHEATING,
 }
 
 

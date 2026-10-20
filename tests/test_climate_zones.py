@@ -228,9 +228,11 @@ async def test_ktr_air_bldc(
 @pytest.mark.parametrize(
     ("status", "key", "action"),
     [
+        (1, "waiting_start", "preheating"),
         (2, "ignition", "preheating"),
         (5, "working", "heating"),
         (7, "final_cleaning", "off"),
+        (8, "eco_stop", "idle"),
     ],
 )
 async def test_ktr_air_bldc_status_is_shown_and_stays_on(

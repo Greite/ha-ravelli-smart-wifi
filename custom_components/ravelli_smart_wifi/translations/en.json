@@ -195,7 +195,8 @@
           "flame_present": "Flame present",
           "working": "Working",
           "final_cleaning": "Final cleaning",
-          "eco_stop": "Eco stop"
+          "eco_stop": "Eco stop",
+          "waiting_start": "Waiting to start"
         }
       },
       "wifi_signal": {

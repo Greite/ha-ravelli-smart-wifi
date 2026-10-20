@@ -45,13 +45,13 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode, manual mode as preset, and what the stove is doing |
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
-| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: ignition, flame present, working and final cleaning; the other codes, off included, show as unknown until eco stop is identified on that board. The raw code is an attribute |
+| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: waiting to start, ignition, flame present, working, final cleaning and eco stop; the other codes, off included, show as unknown until off is trusted on that board. The raw code is an attribute |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
 | Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC, in whole degrees, and empty while the stove reports none; it can lag the remote control by several minutes |
 | Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only |
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
-| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it |
+| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC, it does not follow the visible flame: the stove reported a flame in every phase, eco stop included |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC |
@@ -160,11 +160,12 @@ know the room is safe and the stove is ready to run.
 - The module does not send the messages of the display of the stove, such
   as "Chargement excessif". Home Assistant cannot show them.
 - The flue gas temperature is not available through the module.
-- The status codes 5 and 8 were never seen on a real stove. The code 9 was
-  seen once, while the display of the stove showed the alarm "01-Black-out":
-  the module sent 255 as the alarm code and no alarm text, so the sensor
-  "Alarm message" showed "code 255". These codes show as unknown, and an
-  alarm is still reported by the alarm sensors.
+- On AIR-RDS, the status codes 5 and 8 were never seen on a real stove. The
+  code 9 was seen once, while the display of the stove showed the alarm
+  "01-Black-out": the module sent 255 as the alarm code and no alarm text, so
+  the sensor "Alarm message" showed "code 255". These codes show as unknown
+  on AIR-RDS, and an alarm is still reported by the alarm sensors. On
+  KTR-AIR BLDC, the code 8 is eco stop.
 - The clock is set to the minute: the module has no seconds.
 
 ## What is not verified yet

@@ -63,6 +63,7 @@ STATUS_STATES = {
     "working",
     "final_cleaning",
     "eco_stop",
+    "waiting_start",
 }
 
 

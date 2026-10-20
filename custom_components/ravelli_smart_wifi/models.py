@@ -58,15 +58,17 @@ STATUS_KEYS: dict[int, str] = {
     6: "final_cleaning",
     7: "eco_stop",
 }
-# Codes of a KTR-AIR BLDC stove, read on its remote control. Codes 0 and 1
-# were also seen but have no key: eco stop was never observed on this board
-# and may share one of them, and eco stop restarts by itself. Code 7 counts
-# as on for the same reason: the periodic cleaning cycle restarts the stove.
+# Codes of a KTR-AIR BLDC stove, read on its remote control. Code 8 is eco
+# stop, which restarts by itself through 1, 2 and 4. Code 0 was seen as off
+# but has no key: no code is trusted as off yet (see off_verified). Code 7
+# counts as on too: the periodic cleaning cycle restarts the stove.
 KTR_STATUS_KEYS: dict[int, str] = {
+    1: "waiting_start",
     2: "ignition",
     4: "flame_present",
     5: "working",
     7: "final_cleaning",
+    8: "eco_stop",
 }
 # The page of the module calls 8 and 9 alarms on the RDS boards. Code 9 was
 # seen once with an alarm on the display, 8 never: they are kept to refuse
