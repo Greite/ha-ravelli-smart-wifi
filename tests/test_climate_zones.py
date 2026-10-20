@@ -1,5 +1,6 @@
 """Tests for the ducting and water thermostats."""
 
+from dataclasses import replace
 from typing import Any
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
@@ -14,6 +15,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.ravelli_smart_wifi.const import DOMAIN
+from custom_components.ravelli_smart_wifi.models import SUPPORTED_MODELS
 
 from .fake_module import HOST, MAC, PATH_GET, PATH_SET, FakeModule
 from .helpers import entity_id_for
@@ -277,6 +279,26 @@ async def test_ktr_air_bldc_turn_on_is_refused(
 
     assert err.value.translation_key == "turn_on_not_verified"
     assert module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize(("status", "sent"), [(0, 1), (6, 0), (7, 0), (8, 0)])
+async def test_ktr_air_bldc_trusted_off_is_code_0_only(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    sent: int,
+) -> None:
+    """Once off is trusted, final cleaning (7) and eco stop still count as on."""
+    monkeypatch.setitem(
+        SUPPORTED_MODELS, 8, replace(SUPPORTED_MODELS[8], off_codes=frozenset({0}))
+    )
+    module = await setup_model(hass, aioclient_mock, 8)
+    module.common[2] = status
+
+    await call(hass, "stove", "turn_on")
+
+    assert module.count(PATH_GET, key="022", status="1") == sent
 
 
 async def test_ktr_air_bldc_schedule_cannot_start_the_stove(
