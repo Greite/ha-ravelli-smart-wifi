@@ -47,7 +47,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS only |
 | Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: ignition, flame present, working and final cleaning; the other codes, off included, show as unknown until eco stop is identified on that board. The raw code is an attribute |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
-| Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC, in whole degrees, and empty while the stove reports none |
+| Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC, in whole degrees, and empty while the stove reports none; it can lag the remote control by several minutes |
 | Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only |
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
