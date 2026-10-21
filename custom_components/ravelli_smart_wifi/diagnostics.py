@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.diagnostics import REDACTED, async_redact_data
-from homeassistant.const import CONF_HOST, CONF_MAC
+from homeassistant.components.diagnostics import REDACTED
+from homeassistant.const import CONF_MODEL
 from homeassistant.core import HomeAssistant
 
 from .coordinator import RavelliConfigEntry
 
-REDACT_ENTRY = {CONF_HOST, CONF_MAC, "unique_id"}
 # Only these keys are kept; every other key is redacted, so a key added by a
 # new firmware never comes out in clear.
 KEEP_SYSTEM = {
@@ -79,7 +78,15 @@ async def async_get_config_entry_diagnostics(
     """Dump every register category of the stove, without personal data."""
     coordinator = entry.runtime_data
     result: dict[str, Any] = {
-        "entry": async_redact_data(entry.as_dict(), REDACT_ENTRY),
+        # Allow-list too: entry_id, discovery keys (they hold the MAC) and
+        # the title, which the owner can rename, never come out.
+        "entry": {
+            "source": entry.source,
+            "version": entry.version,
+            "minor_version": entry.minor_version,
+            "model": entry.data[CONF_MODEL],
+            "options": dict(entry.options),
+        },
         "model": coordinator.model.name,
     }
     raw = await coordinator.async_read_diagnostics()

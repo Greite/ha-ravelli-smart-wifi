@@ -26,10 +26,11 @@ To find your board, open `http://<address of the module>/` in a browser: the
 name is at the top of the page.
 
 To report a problem with a stove that is set up, open an issue and attach the
-diagnostics download of the device. Addresses, network name, device name and
-program names are removed from it, but it keeps every register value, the
-clock of the stove and the times of your programs: remove those you'd rather
-not share before you attach it.
+diagnostics download of the device. The integration removes the addresses,
+the network name, the identifiers of the device and of its entry, and the
+names. It keeps every register value, so the clock of the stove, and the
+times and temperatures of your programs; Home Assistant adds its version and
+your time zone. Remove what you'd rather not share before you attach it.
 
 If your board is refused at setup, there is no device to download from. Open
 an issue and attach the output of this command, after removing the values of
@@ -183,8 +184,9 @@ list of points checked on a real stove and their results.
 | A device answers at this address, but it is not a Ravelli Smart Wi-Fi module. | The address belongs to another device |
 | Stove model N is not supported yet. Ask for it at https://github.com/Greite/ha-ravelli-smart-wifi/issues. | The board is not in the table above. Open an issue with the code N |
 
-The diagnostics download of the device holds every register of the stove.
-Network name, addresses and program names are removed from it.
+The diagnostics download of the device holds every register of the stove and
+the schedule. Addresses, network name, identifiers and names are removed from
+it; see "Supported stoves" for what it keeps.
 
 ### Debug logging
 

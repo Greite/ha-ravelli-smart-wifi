@@ -28,11 +28,22 @@ async def test_diagnostics_hold_the_registers_and_no_personal_data(
     result = await async_get_config_entry_diagnostics(hass, init_integration)
 
     text = json.dumps(result, default=str)
-    for secret in (*PERSONAL, "Living room", "11:22:33:44:55:66"):
+    for secret in (
+        *PERSONAL,
+        "Living room",
+        "11:22:33:44:55:66",
+        init_integration.entry_id,
+    ):
         assert secret not in text, secret
     assert result["model"] == "AIR-RDS"
-    assert result["entry"]["data"] == {"host": REDACTED, "model": 7, "mac": REDACTED}
-    assert result["entry"]["unique_id"] == REDACTED
+    # Allow-list: discovery keys hold the MAC, the title can be renamed.
+    assert result["entry"] == {
+        "source": init_integration.source,
+        "version": init_integration.version,
+        "minor_version": init_integration.minor_version,
+        "model": 7,
+        "options": dict(init_integration.options),
+    }
     assert result["system"]["fwVer"] == "0.51"
     assert result["system"]["rssi"] == -74
     assert result["system"]["network"] == REDACTED
