@@ -38,6 +38,25 @@ def test_readme_documents_the_actions(action: str) -> None:
     assert f"ravelli_smart_wifi.{action}" in README
 
 
+def test_readme_install_reaches_the_marketplace_and_hacs() -> None:
+    """Home Assistant 2026.11 replaced HACS by the Marketplace; both paths stay documented."""
+    manifest = json.loads(
+        (
+            ROOT / "custom_components" / "ravelli_smart_wifi" / "manifest.json"
+        ).read_text()
+    )
+
+    assert "**Settings > Marketplace**" in README
+    # The hacs_repository link opens HACS before 2026.11 and the Marketplace after.
+    assert (
+        "redirect/hacs_repository/?owner=Greite&repository=ha-ravelli-smart-wifi"
+        "&category=integration" in README
+    )
+    # The Marketplace sets up a first install without a restart only with a config flow.
+    assert "set it up right away" in README
+    assert manifest["config_flow"] is True
+
+
 def test_readme_states_the_limits() -> None:
     """Unofficial, unauthenticated, and what is not verified."""
     assert "unofficial" in README.lower()

@@ -1,6 +1,7 @@
 {
   "domain": "ravelli_smart_wifi",
   "name": "Ravelli Smart Wi-Fi",
+  "categories": ["climate.thermostats_heating"],
   "codeowners": ["@Greite"],
   "config_flow": true,
   "dependencies": ["network"],

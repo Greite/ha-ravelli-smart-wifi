@@ -60,10 +60,12 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 
 ## Installation
 
-### With HACS
+### With the Marketplace or HACS
 
-In HACS, search for **Ravelli Smart Wi-Fi**, download it and restart Home
-Assistant. The button below opens the same page in your Home Assistant.
+From Home Assistant 2026.11, go to **Settings > Marketplace**; on older
+versions, open HACS. Search for **Ravelli Smart Wi-Fi** and download it. In the
+Marketplace you can set it up right away; with HACS, restart Home Assistant
+first. The button below opens the same page in your Home Assistant.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Greite&repository=ha-ravelli-smart-wifi&category=integration)
 
