@@ -170,6 +170,10 @@ know the room is safe and the stove is ready to run.
   on AIR-RDS, and an alarm is still reported by the alarm sensors. On
   KTR-AIR BLDC, the code 8 is eco stop.
 - The clock is set to the minute: the module has no seconds.
+- On KTR-AIR BLDC, the module can keep old values of the room temperature,
+  the target and the power for many minutes after they change on the remote
+  control. Values written from Home Assistant reach the stove; the status is
+  not affected.
 
 ## What is not verified yet
 
