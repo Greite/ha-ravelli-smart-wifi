@@ -158,6 +158,9 @@ class StoveModel:
     ambient_register: int = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
     has_front_fan: bool = False
+    # True when values changed on the remote stay old in the module until it
+    # is asked key=019, as its own page does when it opens.
+    info_before_poll: bool = False
     # False when the board reports a flame with no fire: its flame sensor
     # is disabled by default.
     flame_shows_fire: bool = True
@@ -190,6 +193,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         ambient_divisor=1,
         has_front_fan=True,
         flame_shows_fire=False,
+        info_before_poll=True,
     ),
     11: StoveModel(
         code=11,

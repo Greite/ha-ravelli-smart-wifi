@@ -263,6 +263,26 @@ async def test_front_fan_is_ktr_air_bldc_only(
     assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
 
 
+@pytest.mark.parametrize(("model", "keys"), [(8, ["019", "020", "020"]), (7, None)])
+async def test_ktr_air_bldc_poll_starts_with_key_019(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    model: int,
+    keys: list[str] | None,
+) -> None:
+    """On KTR-AIR BLDC, values changed on the remote catch up after a 019."""
+    module = await setup_model(hass, aioclient_mock, model)
+    before = len(module.requests)
+
+    await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
+
+    sent = [fields.get("key") for _, fields in module.requests[before:]]
+    if keys is None:
+        assert "019" not in sent
+    else:
+        assert sent == keys
+
+
 @pytest.mark.parametrize(
     ("status", "sent"), [(0, 1), (1, 0), (6, 0), (7, 0), (8, 0), (42, 0)]
 )

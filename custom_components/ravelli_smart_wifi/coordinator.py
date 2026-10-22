@@ -112,6 +112,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
     async def _async_update_data(self) -> RavelliData:
         try:
             async with self._lock:
+                if self.model.info_before_poll:
+                    # ponytail: seen once on a stove, a 019 then reads every
+                    # 30 s followed the remote; drop it if it does not help.
+                    await self.client.get_info()
                 payloads = [
                     await self.client.get_registers(category)
                     for category in self.model.categories
