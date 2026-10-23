@@ -173,8 +173,7 @@ know the room is safe and the stove is ready to run.
 - On KTR-AIR BLDC, the module can keep old values of the room temperature,
   the target and the power for many minutes after they change on the remote
   control. Values written from Home Assistant reach the stove; the status is
-  not affected. Each poll of this board asks the module for its information
-  first (`key=019`), which may refresh them; this is not verified yet.
+  not affected.
 
 ## What is not verified yet
 
