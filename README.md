@@ -19,7 +19,7 @@ board, not on the commercial name of the stove.
 | AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
-| KTR-AIR BLDC | Written from the module's own web page; status, eco stop, ambient temperature and front fan checked by a user on a real stove, firmware 0.51. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. No alarm was seen on this board yet |
+| KTR-AIR BLDC | Checked by a user on a real stove, firmware 0.51: status and eco stop, on and off, target, power, schedule switch, clock, ambient temperature and front fan. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Storing a program and alarms are not verified on this board |
 | Any other board | Refused at setup |
 
 To find your board, open `http://<address of the module>/` in a browser: the
@@ -59,7 +59,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Number "Power level" | The same power level as the fan mode of the thermostat |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC |
 | Switch "Schedule" | Makes the stove follow or ignore the programs it stores |
-| Calendar "Schedule" | Shows when the stove will run by itself |
+| Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
 
 ## Installation
