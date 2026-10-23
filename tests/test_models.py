@@ -230,6 +230,19 @@ def test_malformed_answers_are_rejected(answer: Any) -> None:
         parse_registers(answer)
 
 
+@pytest.mark.parametrize(
+    "row",
+    [[2, "Living room"], ["Living room", 0], "Living room", [1, 2, "Living room"]],
+)
+def test_malformed_row_error_holds_no_value(row: Any) -> None:
+    """The error reaches the log: it describes the row, never its content."""
+    with pytest.raises(InvalidPayloadError) as err:
+        parse_registers({"params": [[0, 44], row]})
+
+    assert "Living room" not in str(err.value)
+    assert "entry 1" in str(err.value)
+
+
 def test_status_register_is_required() -> None:
     """A state without a status cannot be trusted."""
     with pytest.raises(InvalidPayloadError):

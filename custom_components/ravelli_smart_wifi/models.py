@@ -224,14 +224,20 @@ def parse_registers(payload: Any) -> dict[int, int]:
     if not isinstance(params, list):
         raise InvalidPayloadError("the answer has no register list")
     registers: dict[int, int] = {}
-    for item in params:
+    for index, item in enumerate(params):
         if (
             not isinstance(item, list)
             or len(item) != 2
             or not _is_int(item[0])
             or not _is_int(item[1])
         ):
-            raise InvalidPayloadError(f"malformed register entry: {item!r}")
+            # The message reaches the log: describe the row, never its content.
+            shape = (
+                f"list of {len(item)} items"
+                if isinstance(item, list)
+                else type(item).__name__
+            )
+            raise InvalidPayloadError(f"malformed register entry {index}: {shape}")
         registers[item[0]] = item[1]
     return registers
 
