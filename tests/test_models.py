@@ -262,21 +262,46 @@ def test_model_must_be_a_number() -> None:
 
 
 def test_supported_models() -> None:
-    """Four model codes, with the categories each one polls."""
-    assert sorted(SUPPORTED_MODELS) == [7, 8, 11, 12]
+    """Five model codes, with the categories each one polls."""
+    assert sorted(SUPPORTED_MODELS) == [6, 7, 8, 11, 12]
+    assert SUPPORTED_MODELS[6].name == "KTR-HYDRO"
     assert SUPPORTED_MODELS[7].name == "AIR-RDS"
     assert SUPPORTED_MODELS[8].name == "KTR-AIR BLDC"
     assert SUPPORTED_MODELS[11].name == "HYDRO-RDS"
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
+    assert SUPPORTED_MODELS[6].categories == (2,)
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
     assert SUPPORTED_MODELS[8].categories == (2, 6)
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water
-    assert SUPPORTED_MODELS[11].has_water and not SUPPORTED_MODELS[11].has_ducting
+    for code in (6, 11):
+        assert SUPPORTED_MODELS[code].has_water
+        assert not SUPPORTED_MODELS[code].has_ducting
     for code in (8, 12):
         assert not SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
+
+
+@pytest.mark.parametrize("code", [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 42])
+def test_ktr_hydro_status_means_nothing(code: int) -> None:
+    """No code was read on this board: each is unknown, on and not igniting."""
+    decoded = state({2: code}, model=6)
+
+    assert decoded.status_key == "unknown"
+    assert decoded.is_on is True
+    # Off is never held back waiting for a flame nobody saw on this board.
+    assert decoded.is_igniting is False
+    assert decoded.in_alarm is False
+
+
+def test_ktr_hydro_temperatures() -> None:
+    """Room from register 6 in whole degrees, water from register 1 in halves."""
+    decoded = state({2: 5, 0: 0, 1: 91, 6: 21}, model=6)
+
+    assert decoded.ambient_temperature == 21
+    assert decoded.water_temperature == 45.5
+    assert state({2: 5, 1: 0}, model=6).water_temperature is None
 
 
 @pytest.mark.parametrize(
@@ -300,6 +325,9 @@ def test_supported_models() -> None:
         (8, 50, 41),
         (8, 51, 5),
         (8, 64, 0x99),
+        (6, 50, 41),
+        (6, 49, 81),
+        (6, 64, 0x99),
     ],
 )
 def test_valid_writes_pass(model: int, register: int, value: int) -> None:
@@ -343,6 +371,11 @@ def test_out_of_range_writes_are_refused(
         (8, 73),
         (8, 74),
         (8, 184),
+        # 0 MIN and 1 MAX on this board, not a level from 1 to 5.
+        (6, 51),
+        (6, 73),
+        (6, 74),
+        (6, 184),
         (7, 0),
         (7, 2),
         (7, 999),

@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -306,6 +307,116 @@ async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
     module.extra["flame"] = 1
     await call(hass, "stove", "turn_off")
     assert module.count(PATH_GET, key="022", status="0") == 1
+
+
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_ktr_hydro(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Model 6: water thermostat, no power level, no code with a meaning."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    registry = er.async_get(hass)
+
+    assert not exists(hass, "duct_right")
+    for key in ("power", "comfort_delta", "comfort_delay"):
+        assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_{key}") is None
+    assert module.count(PATH_GET, key="020", category="6") == 0
+    assert module.count(PATH_GET, key="020", category="11") == 0
+
+    stove = climate(hass, "stove")
+    assert stove.state == "heat"
+    assert stove.attributes.get("hvac_action") is None
+    assert "fan_modes" not in stove.attributes
+    assert stove.attributes["current_temperature"] == 21
+    water = climate(hass, "water")
+    assert water.attributes["current_temperature"] == 45.5
+    assert water.attributes["temperature"] == 60
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "unknown"
+
+    await call(hass, "water", "set_temperature", temperature=65)
+    assert module.categories[2][49] == 65
+
+
+@pytest.mark.parametrize("status", [0, 5, 42])
+@pytest.mark.parametrize("key", ["stove", "water"])
+async def test_ktr_hydro_turn_on_is_refused(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, key: str
+) -> None:
+    """No code of this board is trusted as off: Home Assistant cannot tell."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    module.common[2] = status
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, key, "turn_on")
+
+    assert err.value.translation_key == "turn_on_not_verified"
+    assert module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize("flame", [0, 1, 255])
+@pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
+async def test_ktr_hydro_turn_off_is_always_sent(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, flame: int
+) -> None:
+    """Nobody saw which code is an ignition on this board: off is never held."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    module.common[2] = status
+    module.extra["flame"] = flame
+
+    await call(hass, "stove", "turn_off")
+
+    assert module.count(PATH_GET, key="022", status="0") == 1
+
+
+async def test_ktr_hydro_schedule_cannot_start_the_stove(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """A program can start the stove: only what stops it is sent."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    switch = entity_id_for(hass, "switch", "schedule")
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, MAC), hass.config_entries.async_entries(DOMAIN)[0].entry_id
+    )
+
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch}, blocking=True
+    )
+    assert module.count(PATH_GET, key="032") == 1
+    assert module.schedule_enabled is False
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            "switch", "turn_on", {"entity_id": switch}, blocking=True
+        )
+    assert err.value.translation_key == "schedule_not_verified"
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "set_schedule_program",
+            {
+                "device_id": device.id,
+                "slot": 6,
+                "name": "Test",
+                "start": "06:30:00",
+                "end": "08:00:00",
+                "temperature": 21,
+                "power": 3,
+                "weekdays": ["mon"],
+            },
+            blocking=True,
+        )
+    assert err.value.translation_key == "schedule_not_verified"
+    assert module.count(PATH_GET, key="032") == 1
+    assert module.schedule_enabled is False
+
+    await hass.services.async_call(
+        DOMAIN,
+        "delete_schedule_program",
+        {"device_id": device.id, "slot": 1},
+        blocking=True,
+    )
+    assert module.count(PATH_GET, key="034") == 1
 
 
 @pytest.mark.usefixtures("enable_all_entities")

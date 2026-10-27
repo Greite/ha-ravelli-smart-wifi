@@ -26,6 +26,7 @@ EXCEPTIONS = {
     "schedule_name_length",
     "schedule_no_time",
     "schedule_no_weekday",
+    "schedule_not_verified",
     "schedule_power_range",
     "schedule_slot_range",
     "schedule_temperature_range",
@@ -34,6 +35,7 @@ EXCEPTIONS = {
     "temperature_required",
     "turn_off_during_ignition",
     "turn_on_in_alarm",
+    "turn_on_not_verified",
     "unsupported_model",
     "value_out_of_range",
 }

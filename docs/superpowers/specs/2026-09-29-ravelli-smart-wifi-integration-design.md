@@ -29,17 +29,18 @@ Success criteria:
 ### Supported stove boards
 
 The module reports a numeric board model. Support covers the RDS family,
-which shares one register layout in the vendor UI, and the KTR-AIR BLDC
-board, which uses the same main and clock registers (section 12).
+which shares one register layout in the vendor UI, and the KTR-AIR BLDC and
+KTR-HYDRO boards, which use the same main and clock registers (section 12).
 
 | Model code | Vendor name | Status |
 |---|---|---|
+| 6 | KTR-HYDRO | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent |
 | 7 | AIR-RDS | Verified on real hardware |
-| 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status labels, ambient temperature and front fan read on a stove by a user; no code is trusted as off and turning on is refused |
+| 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
 | 12 | ECO-RDS | Transcribed from the vendor UI, untested |
 
-Every other model code (1, 2, 5, 6, 9, 10, 14, 15) is refused during
+Every other model code (1, 2, 5, 9, 10, 14, 15) is refused during
 setup with a message that names the code and points to the issue tracker.
 
 ### In scope
@@ -448,3 +449,4 @@ Not verified:
 | Off codes per board | "Not on" is a set of raw codes per model (`off_codes`: 0 and 6 on the RDS boards, none yet on KTR-AIR BLDC) instead of a global set of keys; `off_verified` is true when that set is not empty. Trusting off on KTR-AIR BLDC will mean `off_codes` of 0 only | The key `final_cleaning` is code 6 on RDS but 7 on KTR-AIR BLDC, where the periodic cleaning restarts the stove: with a global set of keys, trusting off would have shown off and sent on during that cleaning |
 | KTR-AIR BLDC off trusted | Code 0 is off (`off_codes` of 0 only): turning on, turning the schedule on and storing a program are sent. `off_verified` and the refusals `turn_on_not_verified` and `schedule_not_verified` are removed, no board needs them. `waiting_start` counts as igniting, so off waits for the flame there, as in the other igniting phases. The flame sensor is disabled by default on this board (`flame_shows_fire`) | Owner's decision in issue 1: code 0 was read as off on the remote, eco stop has its own code (8), and off sent from Home Assistant took the stove through 7 to 0. A code other than 0 on a stove off for a long time would count as on, so nothing would be sent. Then verified by a user on 2026-10-22: on from Home Assistant at code 0, schedule switch both ways. No alarm was seen on this board: the alarm register 3 still refuses turning on |
 | KTR-AIR BLDC `key=019` before each poll | Tried in 2026.10.4b2, removed | One run had suggested it kept the values changed on the remote in step; with it, target and power still lagged up to about 15 minutes |
+| KTR-HYDRO (model 6) | Supported, transcribed from the vendor UI read on another board's module (the page holds every board): category 2 only, ambient in register 6 in whole degrees, water in register 1 in half degrees, water target 49 and ambient target 50 writable, no comfort settings. Register 51 reads 0 MIN or 1 MAX on this board: it is not writable and the power level (number and fan modes) is left out. Empty status table and `off_codes`: every code is unknown and counts as on. `off_verified` is back: when false, turning on, turning the schedule on and storing a program are refused (`turn_on_not_verified`, `schedule_not_verified`). Unlike the first KTR-AIR BLDC release, an unknown code does not count as igniting, so off is sent whatever `flame` reads | Asked in issue 2. A refusal of off that waits for a flame nobody saw on this board could leave a running stove with no way out from Home Assistant |

@@ -218,6 +218,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
     async def async_set_power(self, on: bool) -> None:
         """Turn the stove on or off, if its current state allows it."""
+        if on and not self.model.off_verified:
+            # No status code of this board was read as off: Home Assistant
+            # cannot tell whether it is off. Off is always sent.
+            raise _invalid("turn_on_not_verified")
 
         async def command() -> None:
             # The polled state can be half a minute old: read it again.
@@ -241,14 +245,22 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
         await self._async_command(command)
 
+    def _check_schedule_start(self) -> None:
+        """Refuse what lets a program start a board with no known off code."""
+        if not self.model.off_verified:
+            raise _invalid("schedule_not_verified")
+
     async def async_set_schedule_enabled(self, enabled: bool) -> None:
         """Change the global switch of the schedule."""
+        if enabled:
+            self._check_schedule_start()
         await self._async_change_schedule(
             lambda schedule: schedule.with_enabled(enabled)
         )
 
     async def async_set_program(self, slot: int, program: ScheduleProgram) -> None:
         """Store one program in a slot, 1 to 6."""
+        self._check_schedule_start()
         _check_slot(slot)
         try:
             program.validate()

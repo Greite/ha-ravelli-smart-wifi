@@ -153,17 +153,43 @@ class StoveModel:
     has_water: bool = False
     # Codes that mean the stove is not on, per board: a key such as
     # final_cleaning names different codes on different boards. Every other
-    # code, an unknown one included, counts as on: the safe side.
+    # code, an unknown one included, counts as on: the safe side. Empty while
+    # no code of the board was read as off: nothing may start it.
     off_codes: frozenset[int] = frozenset({0, 6})
     ambient_register: int = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
+    water_divisor: int = 1
     has_front_fan: bool = False
     # False when the board reports a flame with no fire: its flame sensor
     # is disabled by default.
     flame_shows_fire: bool = True
 
+    @property
+    def off_verified(self) -> bool:
+        """Whether a status code of the board is trusted as off."""
+        return bool(self.off_codes)
+
 
 SUPPORTED_MODELS: dict[int, StoveModel] = {
+    # Transcribed from the page of the module: category 2 only, ambient in
+    # register 6 (remote probe), water in half degrees. Register 51 is 0 MIN
+    # or 1 MAX, not a power level: it is not written. No code was read on a
+    # stove: each is unknown, counts as on and never as an ignition, so off
+    # is always sent and turning on is refused.
+    6: StoveModel(
+        code=6,
+        name="KTR-HYDRO",
+        categories=(CATEGORY_MAIN,),
+        writable=(_COMMON_WRITABLE - {REG_POWER, REG_COMFORT_DELAY, REG_COMFORT_DELTA})
+        | {REG_WATER_SETPOINT},
+        status_keys={},
+        alarm_codes=frozenset(),
+        has_water=True,
+        off_codes=frozenset(),
+        ambient_register=REG_KTR_AMBIENT_TEMP,
+        ambient_divisor=1,
+        water_divisor=2,
+    ),
     7: StoveModel(
         code=7,
         name="AIR-RDS",
@@ -368,9 +394,11 @@ class StoveState:
         return raw * 10 + 250 if raw else raw
 
     @property
-    def water_temperature(self) -> int | None:
+    def water_temperature(self) -> float | None:
         """Water temperature in degrees Celsius."""
-        return self.raw(REG_WATER_TEMP) or None
+        model = SUPPORTED_MODELS.get(self.model)
+        raw = self.raw(REG_WATER_TEMP)
+        return raw / (model.water_divisor if model else 1) if raw else None
 
     @property
     def water_setpoint(self) -> int | None:

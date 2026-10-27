@@ -184,6 +184,10 @@ class RavelliStoveClimate(RavelliPowerClimate):
     def __init__(self, coordinator: RavelliCoordinator) -> None:
         """Create the thermostat of the stove."""
         super().__init__(coordinator, "stove")
+        if REG_POWER not in coordinator.model.writable:
+            # KTR-HYDRO: register 51 is MIN or MAX, not a level from 1 to 5.
+            self._attr_supported_features &= ~ClimateEntityFeature.FAN_MODE
+            self._attr_fan_modes = None
 
     @property
     def hvac_action(self) -> HVACAction | None:

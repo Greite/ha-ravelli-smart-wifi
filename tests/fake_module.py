@@ -54,6 +54,10 @@ class FakeModule:
             self.categories[6] = {175: 3, 183: 20, 184: 20, 185: 20, 187: 6}
         if model == 11:
             self.categories[2].update({1: 45, 49: 60})
+        if model == 6:
+            # From the page of the module: ambient in register 6, water in
+            # half degrees in register 1, power 0 MIN or 1 MAX.
+            self.categories[2].update({0: 0, 1: 91, 6: 21, 49: 60, 51: 1})
         self.extra: dict[str, Any] = capture["extra"]
         if model == 8:
             # A KTR-AIR BLDC stove reported a flame in every phase.
