@@ -56,7 +56,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Water temperature" | In °C. HYDRO-RDS and KTR-HYDRO only |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
-| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: the stove reported a flame in every phase, eco stop included, or with the stove off and cold. It is disabled by default there, when the device is first added |
+| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: on KTR-AIR BLDC the stove reported a flame in every phase, eco stop included, and a KTR-HYDRO stove reported one while off. It is disabled by default on both, when the device is first added |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat. Not on KTR-HYDRO |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC and KTR-HYDRO |

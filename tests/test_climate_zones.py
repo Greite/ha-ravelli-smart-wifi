@@ -264,6 +264,19 @@ async def test_front_fan_is_ktr_air_bldc_only(
     assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
 
 
+async def test_water_temperature_is_hydro_only(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Register 1 means nothing on a board without a water circuit."""
+    await setup_model(hass, aioclient_mock, 7)
+
+    registry = er.async_get(hass)
+    assert (
+        registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_water_temperature")
+        is None
+    )
+
+
 @pytest.mark.parametrize(
     ("status", "sent"), [(0, 1), (1, 0), (6, 0), (7, 0), (8, 0), (42, 0)]
 )
@@ -344,7 +357,7 @@ async def test_ktr_hydro(
 async def test_ktr_hydro_flame_is_disabled_by_default(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """The board reported a flame with the stove off and cold."""
+    """The board reported a flame with the stove off."""
     await setup_model(hass, aioclient_mock, 6)
 
     entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
@@ -496,6 +509,11 @@ async def test_water_thermostat(
     assert state.attributes["min_temp"] == 30
     assert state.attributes["max_temp"] == 80
     assert state.attributes["preset_modes"] == ["none", "manual"]
+    # Whole degrees on this board: register 1 is not halved.
+    assert (
+        hass.states.get(entity_id_for(hass, "sensor", "water_temperature")).state
+        == "45.0"
+    )
 
     await call(hass, "water", "set_temperature", temperature=65)
     assert module.categories[2][49] == 65

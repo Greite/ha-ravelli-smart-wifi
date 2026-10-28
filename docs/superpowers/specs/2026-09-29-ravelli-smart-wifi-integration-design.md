@@ -226,19 +226,20 @@ default" are created disabled in the entity registry.
 |---|---|---|---|
 | climate | Stove | status, registers 0, 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. |
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. |
-| climate | Water | registers 49, 1 | Model 11 only. Target 30 to 80 °C. |
+| climate | Water | registers 49, 1 | Models 6 and 11 only. Target 30 to 80 °C. Register 1 in half degrees on model 6. |
 | sensor | Status | register 2 | Enum of the 7 keys; `unknown` state for any other code; attribute `raw_value`. |
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text; `code N` with the raw code of register 3 when the text is empty and the code is not 0; `none` otherwise; attribute `raw_value`. |
 | sensor | Ambient temperature | register 0 | °C, measurement. |
+| sensor | Water temperature | register 1 | Models 6 and 11 only. °C, measurement; in half degrees on model 6; 0 is no value. |
 | sensor | Extractor speed | register 5 | rpm, measurement, enabled by default. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9, or register 3 non-zero | Device class `problem`. |
-| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. |
+| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6 and 8. |
 | binary_sensor | Firmware update available | `fwUpdate` | Device class `update`, diagnostic. |
 | number | Power level | register 51 | 1 to 5. Deliberate duplicate of the climate fan mode, as in Agua IOT. |
 | number | Comfort climate delta | register 74 | 0 to 20 °C, config. |
 | number | Comfort climate delay | register 73 | 0 to 9 min, config. |
-| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. |
+| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. On model 6, `unknown` while `chrono` disagrees with the flag; the calendar then shows every enabled program. |
 | button | Synchronize clock | registers 59 to 64 | Config. Writes Home Assistant local time. |
 | calendar | Schedule | schedule programs | Read-only, section 8. |
 
@@ -404,6 +405,9 @@ Not verified:
 - A program name of 15 characters that holds an accented letter.
 - The half degree of the current temperature on the thermostat card.
 - The HYDRO-RDS and ECO-RDS boards.
+- On KTR-HYDRO: every status code and the off code, the half degrees of
+  register 1, `flame` while working, which schedule flag the stove follows
+  (`key=033` or `chrono`), and every command.
 
 ## 11. Repository conventions
 
@@ -450,4 +454,4 @@ Not verified:
 | KTR-AIR BLDC off trusted | Code 0 is off (`off_codes` of 0 only): turning on, turning the schedule on and storing a program are sent. `off_verified` and the refusals `turn_on_not_verified` and `schedule_not_verified` are removed, no board needs them. `waiting_start` counts as igniting, so off waits for the flame there, as in the other igniting phases. The flame sensor is disabled by default on this board (`flame_shows_fire`) | Owner's decision in issue 1: code 0 was read as off on the remote, eco stop has its own code (8), and off sent from Home Assistant took the stove through 7 to 0. A code other than 0 on a stove off for a long time would count as on, so nothing would be sent. Then verified by a user on 2026-10-22: on from Home Assistant at code 0, schedule switch both ways. No alarm was seen on this board: the alarm register 3 still refuses turning on |
 | KTR-AIR BLDC `key=019` before each poll | Tried in 2026.10.4b2, removed | One run had suggested it kept the values changed on the remote in step; with it, target and power still lagged up to about 15 minutes |
 | KTR-HYDRO (model 6) | Supported, transcribed from the vendor UI read on another board's module (the page holds every board): category 2 only, ambient in register 6 in whole degrees, water in register 1 in half degrees, water target 49 and ambient target 50 writable, no comfort settings. Register 51 reads 0 MIN or 1 MAX on this board: it is not writable and the power level (number and fan modes) is left out. Empty status table and `off_codes`: every code is unknown and counts as on. `off_verified` is back: when false, turning on, turning the schedule on and storing a program are refused (`turn_on_not_verified`, `schedule_not_verified`). Unlike the first KTR-AIR BLDC release, an unknown code does not count as igniting, so off is sent whatever `flame` reads | Asked in issue 2. A refusal of off that waits for a flame nobody saw on this board could leave a running stove with no way out from Home Assistant |
-| KTR-HYDRO first readings | Sensor "Water temperature" on the boards with water, from the same value as the water thermostat. The flame sensor is disabled by default on KTR-HYDRO (`flame_shows_fire`). Flag `schedule_flag_verified`, false on KTR-HYDRO: the schedule switch shows unknown when `chrono` disagrees with the flag of `key=033`, and the calendar then shows every enabled program. Status codes and the refusals are unchanged | Issue 2, diagnostics of a stove off and cold: the user looked for a water temperature entity; `flame` read 1; `key=033` said disabled while `chrono` and register 37 read 1, which meant enabled on KTR-AIR BLDC, with an enabled program stored. Showing off for a schedule that may start the stove is not acceptable |
+| KTR-HYDRO first readings | Sensor "Water temperature" on the boards with water, from the same value as the water thermostat. The flame sensor is disabled by default on KTR-HYDRO (`flame_shows_fire`). Flag `schedule_flag_verified`, false on KTR-HYDRO: the schedule switch shows unknown when `chrono` disagrees with the flag of `key=033`, and the calendar then shows every enabled program. Status codes and the refusals are unchanged | Issue 2, diagnostics of a stove off (cold not stated): the user looked for a water temperature entity; `flame` read 1; `key=033` said disabled while `chrono` and register 37 read 1, which meant enabled on KTR-AIR BLDC, with an enabled program stored. Showing off for a schedule that may start the stove is not acceptable |

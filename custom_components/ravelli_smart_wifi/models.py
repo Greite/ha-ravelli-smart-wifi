@@ -192,7 +192,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
         water_divisor=2,
-        # Read on a stove that was off and cold: flame 1.
+        # Read once with the stove off: flame 1. Disabled by default out of caution.
         flame_shows_fire=False,
         # Read once: key=033 said disabled while chrono and register 37
         # read 1, which meant enabled on KTR-AIR BLDC.
