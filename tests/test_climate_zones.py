@@ -332,9 +332,60 @@ async def test_ktr_hydro(
     assert water.attributes["current_temperature"] == 45.5
     assert water.attributes["temperature"] == 60
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "unknown"
+    assert (
+        hass.states.get(entity_id_for(hass, "sensor", "water_temperature")).state
+        == "45.5"
+    )
 
     await call(hass, "water", "set_temperature", temperature=65)
     assert module.categories[2][49] == 65
+
+
+async def test_ktr_hydro_flame_is_disabled_by_default(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The board reported a flame with the stove off and cold."""
+    await setup_model(hass, aioclient_mock, 6)
+
+    entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
+    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+@pytest.mark.parametrize(
+    ("model", "enabled", "chrono", "expected"),
+    [
+        # As read on a KTR-HYDRO stove: the two flags disagree.
+        (6, False, 1, "unknown"),
+        (6, True, 0, "unknown"),
+        (6, False, 0, "off"),
+        (6, True, 1, "on"),
+        # The RDS capture holds chrono 0 with the schedule on: not a signal.
+        (7, True, 0, "on"),
+    ],
+)
+async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    model: int,
+    enabled: bool,
+    chrono: int,
+    expected: str,
+) -> None:
+    """Never show off for a schedule that may start the stove."""
+    module = FakeModule(model=model)
+    module.schedule_enabled = enabled
+    module.extra["chrono"] = chrono
+    module.install(aioclient_mock)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=MAC,
+        data={CONF_HOST: HOST, CONF_MODEL: model, CONF_MAC: MAC},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(entity_id_for(hass, "switch", "schedule")).state == expected
 
 
 @pytest.mark.parametrize("status", [0, 5, 42])

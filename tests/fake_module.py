@@ -62,6 +62,10 @@ class FakeModule:
         if model == 8:
             # A KTR-AIR BLDC stove reported a flame in every phase.
             self.extra["flame"] = 1
+        if model == 6:
+            # Read on a KTR-HYDRO stove, off and cold: flame 1, and chrono 1
+            # while key=033 said the schedule was disabled.
+            self.extra.update({"flame": 1, "chrono": 1})
         self.schedule_enabled: bool = capture["schedule"]["enabled"]
         self.programs: list[list[Any]] = capture["schedule"]["programs"]
         self.requests: list[tuple[str, dict[str, str]]] = []

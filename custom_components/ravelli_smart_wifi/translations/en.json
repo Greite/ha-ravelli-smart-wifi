@@ -199,6 +199,9 @@
           "waiting_start": "Waiting to start"
         }
       },
+      "water_temperature": {
+        "name": "Water temperature"
+      },
       "wifi_signal": {
         "name": "Wi-Fi signal"
       }

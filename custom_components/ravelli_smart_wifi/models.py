@@ -163,6 +163,9 @@ class StoveModel:
     # False when the board reports a flame with no fire: its flame sensor
     # is disabled by default.
     flame_shows_fire: bool = True
+    # False while the flag of key=033 was not seen to match what the stove
+    # shows: the switch then shows unknown when `chrono` disagrees with it.
+    schedule_flag_verified: bool = True
 
     @property
     def off_verified(self) -> bool:
@@ -189,6 +192,11 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
         water_divisor=2,
+        # Read on a stove that was off and cold: flame 1.
+        flame_shows_fire=False,
+        # Read once: key=033 said disabled while chrono and register 37
+        # read 1, which meant enabled on KTR-AIR BLDC.
+        schedule_flag_verified=False,
     ),
     7: StoveModel(
         code=7,
@@ -286,6 +294,7 @@ class StoveState:
     flame: int | None
     alarm_text: str
     name: str
+    chrono: int | None = None
 
     @classmethod
     def from_payloads(cls, payloads: list[Any]) -> StoveState:
@@ -308,6 +317,7 @@ class StoveState:
             flame=flame if _is_int(flame) and flame != FLAME_UNSUPPORTED else None,
             alarm_text=str(last.get("alr") or "").strip(),
             name=str(last.get("name") or ""),
+            chrono=chrono if _is_int(chrono := last.get("chrono")) else None,
         )
 
     def raw(self, register: int) -> int | None:

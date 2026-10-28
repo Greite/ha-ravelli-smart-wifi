@@ -95,6 +95,15 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
         exists_fn=lambda model: model.has_front_fan,
     ),
     RavelliSensorDescription(
+        key="water_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda data: data.state.water_temperature,
+        exists_fn=lambda model: model.has_water,
+    ),
+    RavelliSensorDescription(
         key="wifi_signal",
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,

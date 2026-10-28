@@ -51,6 +51,7 @@ ENTITIES = {
         "extractor_speed",
         "front_fan",
         "status",
+        "water_temperature",
         "wifi_signal",
     },
     "switch": {"schedule"},
