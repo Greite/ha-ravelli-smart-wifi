@@ -386,6 +386,16 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
     await hass.async_block_till_done()
 
     assert hass.states.get(entity_id_for(hass, "switch", "schedule")).state == expected
+    calendar = entity_id_for(hass, "calendar", "schedule")
+    response = await hass.services.async_call(
+        "calendar",
+        "get_events",
+        {"entity_id": calendar, "duration": {"days": 2}},
+        blocking=True,
+        return_response=True,
+    )
+    # The calendar shows the starts the stove may make, unless surely off.
+    assert bool(response[calendar]["events"]) is (expected != "off")
 
 
 @pytest.mark.parametrize("status", [0, 5, 42])

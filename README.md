@@ -61,7 +61,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Number "Power level" | The same power level as the fan mode of the thermostat. Not on KTR-HYDRO |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC and KTR-HYDRO |
 | Switch "Schedule" | Makes the stove follow or ignore the programs it stores. On KTR-HYDRO it shows unknown when the schedule table and the status of the module disagree: check the stove before relying on it |
-| Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does |
+| Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does. While the switch shows unknown, the calendar shows every enabled program |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
 
 ## Installation

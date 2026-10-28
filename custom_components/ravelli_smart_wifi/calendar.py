@@ -115,12 +115,15 @@ class RavelliScheduleCalendar(RavelliEntity, CalendarEntity):
         return super().available and self.coordinator.data.schedule is not None
 
     def _events(self, start: datetime, end: datetime) -> list[CalendarEvent]:
-        schedule = self.coordinator.data.schedule
-        return (
-            []
-            if schedule is None
-            else schedule_events(schedule, start, end, self.hass.config.language)
-        )
+        data = self.coordinator.data
+        if data.schedule is None:
+            return []
+        schedule = data.schedule
+        if data.schedule_enabled is None:
+            # Unsure whether the stove follows its programs: show the
+            # starts it may make rather than hide them.
+            schedule = schedule.with_enabled(True)
+        return schedule_events(schedule, start, end, self.hass.config.language)
 
     @property
     def event(self) -> CalendarEvent | None:

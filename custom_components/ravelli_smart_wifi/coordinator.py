@@ -28,6 +28,7 @@ from .const import (
 from .models import (
     CATEGORY_MAIN,
     SLOT_COUNT,
+    SUPPORTED_MODELS,
     InvalidPayloadError,
     RegisterNotWritableError,
     Schedule,
@@ -53,6 +54,21 @@ class RavelliData:
     system: dict[str, Any]
     # None while the schedule cannot be read.
     schedule: Schedule | None
+
+    @property
+    def schedule_enabled(self) -> bool | None:
+        """Whether the stove follows its programs; None when unknown."""
+        if self.schedule is None:
+            return None
+        model = SUPPORTED_MODELS.get(self.state.model)
+        if (
+            model is not None
+            and not model.schedule_flag_verified
+            and self.state.chrono != int(self.schedule.enabled)
+        ):
+            # Two flags of the module disagree: the programs may start it.
+            return None
+        return self.schedule.enabled
 
 
 def _invalid(key: str, **placeholders: str) -> ServiceValidationError:
