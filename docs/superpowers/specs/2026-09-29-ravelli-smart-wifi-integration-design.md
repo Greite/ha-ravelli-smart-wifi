@@ -226,22 +226,22 @@ default" are created disabled in the entity registry.
 
 | Platform | Entity | Source | Notes |
 |---|---|---|---|
-| climate | Stove | status, registers 0, 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. |
+| climate | Stove | status, ambient register, registers 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level, absent on model 6. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. No current temperature on model 14. |
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. |
 | climate | Water | registers 49, 1 | Models 6 and 11 only. Target 30 to 80 °C. Register 1 in half degrees on model 6. |
 | sensor | Status | register 2 | Enum of the 7 keys; `unknown` state for any other code; attribute `raw_value`. |
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text; `code N` with the raw code of register 3 when the text is empty and the code is not 0; `none` otherwise; attribute `raw_value`. |
-| sensor | Ambient temperature | register 0 | °C, measurement. |
+| sensor | Ambient temperature | register 0, or 6 on models 6 and 8 | °C, measurement. Half degrees on register 0, whole degrees on register 6; 0 is no value. Always empty on model 14 until its register is read on a stove. |
 | sensor | Water temperature | register 1 | Models 6 and 11 only. °C, measurement; in half degrees on model 6; 0 is no value. |
 | sensor | Extractor speed | register 5 | rpm, measurement, enabled by default. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
-| binary_sensor | Alarm | status 8 or 9, or register 3 non-zero | Device class `problem`. |
-| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6 and 8. |
+| binary_sensor | Alarm | status 8 or 9 on models 7, 11 and 12, or register 3 non-zero | Device class `problem`. |
+| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6, 8 and 14. |
 | binary_sensor | Firmware update available | `fwUpdate` | Device class `update`, diagnostic. |
-| number | Power level | register 51 | 1 to 5. Deliberate duplicate of the climate fan mode, as in Agua IOT. |
-| number | Comfort climate delta | register 74 | 0 to 20 °C, config. |
-| number | Comfort climate delay | register 73 | 0 to 9 min, config. |
-| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. On model 6, `unknown` while `chrono` disagrees with the flag; the calendar then shows every enabled program. |
+| number | Power level | register 51 | 1 to 5. Deliberate duplicate of the climate fan mode, as in Agua IOT. Absent on model 6. |
+| number | Comfort climate delta | register 74 | 0 to 20 °C, config. Absent on models 6, 8 and 14. |
+| number | Comfort climate delay | register 73 | 0 to 9 min, config. Absent on models 6, 8 and 14. |
+| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. On models 6 and 14, `unknown` while `chrono` disagrees with the flag; the calendar then shows every enabled program. |
 | button | Synchronize clock | registers 59 to 64 | Config. Writes Home Assistant local time. |
 | calendar | Schedule | schedule programs | Read-only, section 8. |
 
