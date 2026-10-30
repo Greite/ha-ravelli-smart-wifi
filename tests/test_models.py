@@ -149,7 +149,22 @@ def test_ktr_air_bldc_ambient_is_register_6_in_degrees(
 )
 def test_front_fan(raw: int, expected: str | None) -> None:
     """Raw 6 was read as AUTO on the remote; other values are the speed."""
-    assert state({2: 5, 187: raw}, model=8).front_fan == expected
+    assert state({2: 5, 175: 3, 187: raw, 188: 1}, model=8).front_fan == expected
+
+
+@pytest.mark.parametrize(
+    ("config", "register"),
+    [(2, 188), (3, 187), (0, None), (1, None), (4, None), (None, None)],
+)
+def test_front_fan_register_follows_the_ducting_configuration(
+    config: int | None, register: int | None
+) -> None:
+    """Only the configurations read on a stove name the front fan register."""
+    registers = {2: 5, 187: 6, 188: 1} | ({} if config is None else {175: config})
+    decoded = state(registers, model=8)
+
+    assert decoded.front_fan_register == register
+    assert decoded.front_fan == {187: "auto", 188: "1", None: None}[register]
 
 
 def test_manual_set_point_has_no_temperature() -> None:

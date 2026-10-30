@@ -31,7 +31,12 @@ REG_COMFORT_DELTA = 74
 REG_DUCT_RIGHT_SETPOINT = 184
 REG_DUCT_LEFT_SETPOINT = 185
 REG_KTR_AMBIENT_TEMP = 6
-REG_KTR_FRONT_FAN = 187
+REG_KTR_DUCT_CONFIG = 175
+# Front fan register per ducting configuration (register 175, set by the
+# installer), only for those read on a stove. The page of the module shows 187
+# alone for 1 and 3, 188 alone for 2, both for 4 (187 is "rear" there) and
+# neither for 0: a configuration not read here has no front fan register.
+KTR_FRONT_FAN_REGISTERS = {2: 188, 3: 187}
 
 CATEGORY_MAIN = 2
 CATEGORY_DUCTING = 6
@@ -209,9 +214,8 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
     ),
     # Transcribed from the page of the module: same main and clock registers
     # as the RDS boards, no comfort settings. Its ducting registers (175, 183
-    # to 193) differ from the RDS ones; only the front fan (187) is read.
-    # Ambient temperature, status codes and front fan were read on a real
-    # stove; no code is trusted as off, so turning on stays refused.
+    # to 193) differ from the RDS ones; only the front fan is read.
+    # Ambient temperature, status codes and front fan were read on real stoves.
     8: StoveModel(
         code=8,
         name="KTR-AIR BLDC",
@@ -373,9 +377,16 @@ class StoveState:
         return raw / model.ambient_divisor if raw else None
 
     @property
+    def front_fan_register(self) -> int | None:
+        """Register of the front fan in the ducting configuration of the stove."""
+        config = self.raw(REG_KTR_DUCT_CONFIG)
+        return None if config is None else KTR_FRONT_FAN_REGISTERS.get(config)
+
+    @property
     def front_fan(self) -> str | None:
         """Front fan setting: 0 to 5, or auto. Raw 6 was read as AUTO."""
-        raw = self.raw(REG_KTR_FRONT_FAN)
+        register = self.front_fan_register
+        raw = None if register is None else self.raw(register)
         if raw == 6:
             return "auto"
         return str(raw) if raw is not None and 0 <= raw <= 5 else None
