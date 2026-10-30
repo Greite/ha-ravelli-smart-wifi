@@ -161,7 +161,8 @@ class StoveModel:
     # code, an unknown one included, counts as on: the safe side. Empty while
     # no code of the board was read as off: nothing may start it.
     off_codes: frozenset[int] = frozenset({0, 6})
-    ambient_register: int = REG_AMBIENT_TEMP
+    # None while no register was read against the stove display.
+    ambient_register: int | None = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
     water_divisor: int = 1
     has_front_fan: bool = False
@@ -245,6 +246,25 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         writable=_COMMON_WRITABLE,
         status_keys=STATUS_KEYS,
         alarm_codes=RDS_ALARM_CODES,
+    ),
+    # Transcribed from the page of the module: the main, power and clock
+    # registers of KTR-AIR BLDC, and its own ducting registers (184 to 189),
+    # not read: category 2 only. The page says ambient in register 0 in half
+    # degrees, as it does for KTR-AIR BLDC where register 6 held it: no
+    # ambient until read. No code was read on a stove: each is unknown, counts
+    # as on and never as an ignition, so off is always sent and turning on is
+    # refused.
+    14: StoveModel(
+        code=14,
+        name="STILO",
+        categories=(CATEGORY_MAIN,),
+        writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
+        status_keys={},
+        alarm_codes=frozenset(),
+        off_codes=frozenset(),
+        ambient_register=None,
+        flame_shows_fire=False,
+        schedule_flag_verified=False,
     ),
 }
 
@@ -371,7 +391,7 @@ class StoveState:
     def ambient_temperature(self) -> float | None:
         """Ambient temperature in degrees Celsius."""
         model = SUPPORTED_MODELS.get(self.model)
-        if model is None:
+        if model is None or model.ambient_register is None:
             return None
         raw = self.raw(model.ambient_register)
         return raw / model.ambient_divisor if raw else None

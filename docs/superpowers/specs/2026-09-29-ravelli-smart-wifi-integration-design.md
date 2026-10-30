@@ -29,8 +29,9 @@ Success criteria:
 ### Supported stove boards
 
 The module reports a numeric board model. Support covers the RDS family,
-which shares one register layout in the vendor UI, and the KTR-AIR BLDC and
-KTR-HYDRO boards, which use the same main and clock registers (section 12).
+which shares one register layout in the vendor UI, and the KTR-AIR BLDC,
+KTR-HYDRO and STILO boards, which use the same main and clock registers
+(section 12).
 
 | Model code | Vendor name | Status |
 |---|---|---|
@@ -39,8 +40,9 @@ KTR-HYDRO boards, which use the same main and clock registers (section 12).
 | 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
 | 12 | ECO-RDS | Transcribed from the vendor UI, untested |
+| 14 | STILO | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent; no ambient temperature |
 
-Every other model code (1, 2, 5, 9, 10, 14, 15) is refused during
+Every other model code (1, 2, 5, 9, 10, 15) is refused during
 setup with a message that names the code and points to the issue tracker.
 
 ### In scope
@@ -408,6 +410,9 @@ Not verified:
 - On KTR-HYDRO: every status code and the off code, the half degrees of
   register 1, `flame` while working, which schedule flag the stove follows
   (`key=033` or `chrono`), and every command.
+- On STILO: every status code and the off code, which register holds the
+  ambient temperature and in which unit, `flame`, which schedule flag the
+  stove follows, the ducting registers 184 to 189, and every command.
 
 ## 11. Repository conventions
 
@@ -456,3 +461,4 @@ Not verified:
 | KTR-HYDRO (model 6) | Supported, transcribed from the vendor UI read on another board's module (the page holds every board): category 2 only, ambient in register 6 in whole degrees, water in register 1 in half degrees, water target 49 and ambient target 50 writable, no comfort settings. Register 51 reads 0 MIN or 1 MAX on this board: it is not writable and the power level (number and fan modes) is left out. Empty status table and `off_codes`: every code is unknown and counts as on. `off_verified` is back: when false, turning on, turning the schedule on and storing a program are refused (`turn_on_not_verified`, `schedule_not_verified`). Unlike the first KTR-AIR BLDC release, an unknown code does not count as igniting, so off is sent whatever `flame` reads | Asked in issue 2. A refusal of off that waits for a flame nobody saw on this board could leave a running stove with no way out from Home Assistant |
 | KTR-HYDRO first readings | Sensor "Water temperature" on the boards with water, from the same value as the water thermostat. The flame sensor is disabled by default on KTR-HYDRO (`flame_shows_fire`). Flag `schedule_flag_verified`, false on KTR-HYDRO: the schedule switch shows unknown when `chrono` disagrees with the flag of `key=033`, and the calendar then shows every enabled program. Status codes and the refusals are unchanged | Issue 2, diagnostics of a stove off (cold not stated): the user looked for a water temperature entity; `flame` read 1; `key=033` said disabled while `chrono` and register 37 read 1, which meant enabled on KTR-AIR BLDC, with an enabled program stored. Showing off for a schedule that may start the stove is not acceptable |
 | KTR-AIR BLDC front fan per ducting configuration | The front fan register follows register 175 of category 6: 188 for 2, 187 for 3. Any other value, or none, leaves the sensor and its `raw_value` empty | Issue 3: on a stove with 175 at 2, the vendor app shows the front fan in 188 and the sensor read 187 (auto) for a fan at P1. The page of the module shows 187 alone for 1 and 3, 188 alone for 2, both for 4 (187 named rear) and neither for 0; only 2 and 3 were read on stoves |
+| STILO (model 14) | Supported, transcribed from the vendor UI read on another board's module: category 2 only, target 50 and power 51 writable with the bounds of the other boards, no comfort settings, no ducting entity. Empty status table and `off_codes`, as on KTR-HYDRO. No ambient temperature (`ambient_register` None). Flame sensor disabled by default and `schedule_flag_verified` false, as on KTR-HYDRO | Issue 5 asked for model 14, with no reading. The page gives ambient in register 0 in half degrees, as it does for KTR-AIR BLDC, where register 6 held it on two stoves: showing a guessed room temperature could drive heating automations. The ducting registers (184 and 185 from 7 to 41, 186 mode, 187 to 189 fans OFF, P1 to P5 or AUTO) differ from the RDS ones and were not read. A stove sold as Stilo reported board 8 in issue 3 |

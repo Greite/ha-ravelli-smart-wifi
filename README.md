@@ -21,6 +21,7 @@ board, not on the commercial name of the stove.
 | ECO-RDS | Written from the module's own web page, not tested |
 | KTR-AIR BLDC | Checked by a user on a real stove, firmware 0.51: status and eco stop, on and off, target, power, schedule switch, clock, ambient temperature and front fan. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Storing a program and alarms are not verified on this board |
 | KTR-HYDRO | Board name, ambient temperature and alarm checked by a user with the stove off, firmware 0.51; the rest is written from the module's own web page. No status code was read on this board yet: the status shows unknown, the thermostat always shows on, and turning on, turning the schedule on and storing a program are refused. Turning off is always sent. No power level: the board has MIN and MAX instead. The schedule switch shows unknown when the module reports two different states for it |
+| STILO | Written from the module's own web page, not tested on a stove. No status code was read on this board yet: the status shows unknown, the thermostat always shows on, and turning on, turning the schedule on and storing a program are refused. Turning off is always sent. The room temperature is not shown until it is read against the display of a stove, and the ducting settings are not shown |
 | Any other board | Refused at setup |
 
 To find your board, open `http://<address of the module>/` in a browser: the
@@ -51,16 +52,16 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS and KTR-HYDRO only |
 | Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: off, waiting to start, ignition, flame present, working, final cleaning and eco stop; the codes 3 and 6 show as unknown. The raw code is an attribute |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
-| Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC and KTR-HYDRO, in whole degrees, and empty while the stove reports none; on KTR-AIR BLDC it can lag the remote control by several minutes |
+| Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC and KTR-HYDRO, in whole degrees, and empty while the stove reports none; on KTR-AIR BLDC it can lag the remote control by several minutes. Always empty on STILO for now |
 | Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only. Which register holds it depends on how the installer set up the ducting of the stove: only two setups were read so far, and on the others the sensor stays empty |
 | Sensor "Extractor speed" | In revolutions per minute |
 | Sensor "Water temperature" | In °C. HYDRO-RDS and KTR-HYDRO only |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
-| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: on KTR-AIR BLDC the stove reported a flame in every phase, eco stop included, and a KTR-HYDRO stove reported one while off. It is disabled by default on both, when the device is first added |
+| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: on KTR-AIR BLDC the stove reported a flame in every phase, eco stop included, and a KTR-HYDRO stove reported one while off. It is disabled by default on both, and on STILO, when the device is first added |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat. Not on KTR-HYDRO |
-| Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC and KTR-HYDRO |
-| Switch "Schedule" | Makes the stove follow or ignore the programs it stores. On KTR-HYDRO it shows unknown when the schedule table and the status of the module disagree: check the stove before relying on it |
+| Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC, KTR-HYDRO and STILO |
+| Switch "Schedule" | Makes the stove follow or ignore the programs it stores. On KTR-HYDRO and STILO it shows unknown when the schedule table and the status of the module disagree: check the stove before relying on it |
 | Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does. While the switch shows unknown, the calendar shows every enabled program |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
 
