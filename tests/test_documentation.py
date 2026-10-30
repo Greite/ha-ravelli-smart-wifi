@@ -138,6 +138,10 @@ def test_readme_describes_every_entity() -> None:
     assert "Only the code 0 counts as off" in README
     assert 'Sensor "Front fan"' in README
     assert (
+        "only two setups were read so far, and on the others the sensor stays empty"
+        in README
+    )
+    assert (
         "Flue gas temperature"
         not in README.split("## What you get")[1].split("\n## ")[0]
     )
