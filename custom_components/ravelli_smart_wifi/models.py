@@ -32,11 +32,35 @@ REG_DUCT_RIGHT_SETPOINT = 184
 REG_DUCT_LEFT_SETPOINT = 185
 REG_KTR_AMBIENT_TEMP = 6
 REG_KTR_DUCT_CONFIG = 175
-# Front fan register per ducting configuration (register 175, set by the
-# installer), only for those read on a stove. The page of the module shows 187
-# alone for 1 and 3, 188 alone for 2, both for 4 (187 is "rear" there) and
-# neither for 0: a configuration not read here has no front fan register.
-KTR_FRONT_FAN_REGISTERS = {2: 188, 3: 187}
+REG_KTR_FRONT_FAN = 187
+REG_KTR_DUCT_FAN = 188
+REG_KTR_DUCT_DIRECTION = 189
+REG_KTR_DUCT_SPLIT = 190
+# Ducting configuration (register 175, set by the installer) decides which
+# ducting registers the page of the module shows. Only two were read on a
+# stove. In 3, 187 is the front fan, as the remote shows it. In 2, 188 is the
+# fan the vendor app calls front but that drives the rear air, 189 the
+# direction of the rear air and 190 the split between outlets. The page's
+# labels of 187 (rear) and 188 (front) are the other way round on both stoves.
+KTR_FRONT_FAN_CONFIG = 3
+KTR_DUCT_CONTROLS_CONFIG = 2
+
+# Options of the KTR-AIR BLDC ducting registers, indexed by raw value.
+FAN_OPTIONS = ("0", "1", "2", "3", "4", "5", "auto")
+DUCT_DIRECTION_OPTIONS = (
+    "rear_left",
+    "three_quarter_rear_left",
+    "middle",
+    "three_quarter_rear_right",
+    "rear_right",
+)
+DUCT_SPLIT_OPTIONS = ("front_rear_left", "equal", "rear_rear_right")
+
+
+def option(options: tuple[str, ...], raw: int | None) -> str | None:
+    """Return the option of a raw value, or None when it has none."""
+    return options[raw] if raw is not None and 0 <= raw < len(options) else None
+
 
 CATEGORY_MAIN = 2
 CATEGORY_DUCTING = 6
@@ -99,6 +123,9 @@ WRITE_BOUNDS: dict[int, tuple[int, int]] = {
     REG_COMFORT_DELTA: (0, 20),
     REG_DUCT_RIGHT_SETPOINT: (DUCT_OFF, 41),
     REG_DUCT_LEFT_SETPOINT: (DUCT_OFF, 41),
+    REG_KTR_DUCT_FAN: (0, 6),
+    REG_KTR_DUCT_DIRECTION: (0, 4),
+    REG_KTR_DUCT_SPLIT: (0, 2),
 }
 
 _COMMON_WRITABLE = frozenset(
@@ -165,7 +192,8 @@ class StoveModel:
     ambient_register: int | None = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
     water_divisor: int = 1
-    has_front_fan: bool = False
+    # The ducting registers of KTR-AIR BLDC (175, 187 to 190) are read.
+    ktr_ducting: bool = False
     # False when the board reports a flame with no fire: its flame sensor
     # is disabled by default.
     flame_shows_fire: bool = True
@@ -215,19 +243,20 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
     ),
     # Transcribed from the page of the module: same main and clock registers
     # as the RDS boards, no comfort settings. Its ducting registers (175, 183
-    # to 193) differ from the RDS ones; only the front fan is read.
-    # Ambient temperature, status codes and front fan were read on real stoves.
+    # to 193) differ from the RDS ones. Ambient temperature, status codes,
+    # front fan and ducting settings were read on real stoves.
     8: StoveModel(
         code=8,
         name="KTR-AIR BLDC",
         categories=(CATEGORY_MAIN, CATEGORY_DUCTING),
-        writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
+        writable=(_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA})
+        | {REG_KTR_DUCT_FAN, REG_KTR_DUCT_DIRECTION, REG_KTR_DUCT_SPLIT},
         status_keys=KTR_STATUS_KEYS,
         alarm_codes=frozenset(),
         off_codes=frozenset({0}),
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
-        has_front_fan=True,
+        ktr_ducting=True,
         flame_shows_fire=False,
     ),
     11: StoveModel(
@@ -399,17 +428,20 @@ class StoveState:
     @property
     def front_fan_register(self) -> int | None:
         """Register of the front fan in the ducting configuration of the stove."""
-        config = self.raw(REG_KTR_DUCT_CONFIG)
-        return None if config is None else KTR_FRONT_FAN_REGISTERS.get(config)
+        if self.raw(REG_KTR_DUCT_CONFIG) == KTR_FRONT_FAN_CONFIG:
+            return REG_KTR_FRONT_FAN
+        return None
 
     @property
     def front_fan(self) -> str | None:
         """Front fan setting: 0 to 5, or auto. Raw 6 was read as AUTO."""
         register = self.front_fan_register
-        raw = None if register is None else self.raw(register)
-        if raw == 6:
-            return "auto"
-        return str(raw) if raw is not None and 0 <= raw <= 5 else None
+        return option(FAN_OPTIONS, None if register is None else self.raw(register))
+
+    @property
+    def has_ducting_controls(self) -> bool:
+        """Whether registers 188 to 190 mean what was read on a stove."""
+        return self.raw(REG_KTR_DUCT_CONFIG) == KTR_DUCT_CONTROLS_CONFIG
 
     @property
     def is_manual(self) -> bool:

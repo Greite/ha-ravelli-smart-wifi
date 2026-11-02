@@ -25,6 +25,7 @@ from homeassistant.helpers.typing import StateType
 from .coordinator import RavelliConfigEntry, RavelliCoordinator, RavelliData
 from .entity import RavelliEntity
 from .models import (
+    FAN_OPTIONS,
     KTR_STATUS_KEYS,
     REG_ALARM,
     STATUS_KEYS,
@@ -88,14 +89,14 @@ SENSORS: tuple[RavelliSensorDescription, ...] = (
     RavelliSensorDescription(
         key="front_fan",
         device_class=SensorDeviceClass.ENUM,
-        options=["0", "1", "2", "3", "4", "5", "auto"],
+        options=list(FAN_OPTIONS),
         value_fn=lambda data: data.state.front_fan,
         raw_fn=lambda data: (
             None
             if (register := data.state.front_fan_register) is None
             else data.state.raw(register)
         ),
-        exists_fn=lambda model: model.has_front_fan,
+        exists_fn=lambda model: model.ktr_ducting,
     ),
     RavelliSensorDescription(
         key="water_temperature",

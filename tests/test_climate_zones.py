@@ -264,26 +264,19 @@ async def test_front_fan_is_ktr_air_bldc_only(
     assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
 
 
-@pytest.mark.parametrize(
-    ("config", "expected", "raw"),
-    [(2, "1", 1), (0, "unknown", None), (4, "unknown", None)],
-)
-async def test_front_fan_follows_the_ducting_configuration(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    config: int,
-    expected: str,
-    raw: int | None,
+@pytest.mark.parametrize("config", [0, 2, 4])
+async def test_front_fan_is_empty_outside_configuration_3(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, config: int
 ) -> None:
-    """Configuration 2 drives the front fan by register 188; others are unknown."""
+    """Only configuration 3 has a front fan register read on a stove."""
     module = await setup_model(hass, aioclient_mock, 8)
     module.categories[6][175] = config
     await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
     await hass.async_block_till_done()
 
     fan = hass.states.get(entity_id_for(hass, "sensor", "front_fan"))
-    assert fan.state == expected
-    assert fan.attributes["raw_value"] == raw
+    assert fan.state == "unknown"
+    assert fan.attributes["raw_value"] is None
 
 
 async def test_water_temperature_is_hydro_only(

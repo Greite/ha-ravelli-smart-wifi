@@ -154,17 +154,20 @@ def test_front_fan(raw: int, expected: str | None) -> None:
 
 @pytest.mark.parametrize(
     ("config", "register"),
-    [(2, 188), (3, 187), (0, None), (1, None), (4, None), (None, None)],
+    [(3, 187), (0, None), (1, None), (2, None), (4, None), (None, None)],
 )
 def test_front_fan_register_follows_the_ducting_configuration(
     config: int | None, register: int | None
 ) -> None:
-    """Only the configurations read on a stove name the front fan register."""
+    """Only configuration 3 has a front fan read on a stove.
+
+    In configuration 2 the app's "Vent. front" (188) drives the rear air.
+    """
     registers = {2: 5, 187: 6, 188: 1} | ({} if config is None else {175: config})
     decoded = state(registers, model=8)
 
     assert decoded.front_fan_register == register
-    assert decoded.front_fan == {187: "auto", 188: "1", None: None}[register]
+    assert decoded.front_fan == {187: "auto", None: None}[register]
 
 
 def test_manual_set_point_has_no_temperature() -> None:
