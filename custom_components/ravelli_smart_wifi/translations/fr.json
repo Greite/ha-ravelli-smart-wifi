@@ -254,6 +254,9 @@
     "device_not_found": {
       "message": "L'appareil sélectionné n'est pas un poêle Ravelli configuré et chargé."
     },
+    "ducting_setup_not_verified": {
+      "message": "La configuration de canalisation du poêle a changé : ce réglage n'est pas envoyé, son registre peut désormais avoir un autre sens. Rechargez l'intégration."
+    },
     "model_mismatch": {
       "message": "Le module indique maintenant le modèle de poêle {model} au lieu du modèle {expected}. Reconfigurez l'intégration."
     },

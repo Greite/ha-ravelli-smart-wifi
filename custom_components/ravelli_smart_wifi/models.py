@@ -44,6 +44,9 @@ REG_KTR_DUCT_SPLIT = 190
 # labels of 187 (rear) and 188 (front) are the other way round on both stoves.
 KTR_FRONT_FAN_CONFIG = 3
 KTR_DUCT_CONTROLS_CONFIG = 2
+KTR_DUCT_CONTROL_REGISTERS = frozenset(
+    {REG_KTR_DUCT_FAN, REG_KTR_DUCT_DIRECTION, REG_KTR_DUCT_SPLIT}
+)
 
 # Options of the KTR-AIR BLDC ducting registers, indexed by raw value.
 FAN_OPTIONS = ("0", "1", "2", "3", "4", "5", "auto")

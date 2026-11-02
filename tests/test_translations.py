@@ -17,6 +17,7 @@ EXCEPTIONS = {
     "cannot_connect",
     "command_refused",
     "device_not_found",
+    "ducting_setup_not_verified",
     "model_mismatch",
     "not_winet",
     "register_not_writable",

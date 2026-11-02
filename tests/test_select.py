@@ -2,6 +2,7 @@
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -147,3 +148,58 @@ async def test_no_select_on_another_board(
 ) -> None:
     """AIR-RDS has none of these registers."""
     assert not hass.states.async_entity_ids("select")
+
+
+@pytest.mark.parametrize("config", [None, 0, 1, 3, 4])
+@pytest.mark.parametrize("register", [188, 189, 190])
+async def test_no_write_once_the_configuration_changes(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    config: int | None,
+    register: int,
+) -> None:
+    """The configuration is read again under the lock before each write.
+
+    A command waiting for the lock must not reach a register whose meaning
+    changed since the last poll.
+    """
+    module = await setup_ktr(hass, aioclient_mock, CONFIG_2)
+    if config is None:
+        del module.categories[6][175]
+    else:
+        module.categories[6][175] = config
+    coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data
+
+    with pytest.raises(ServiceValidationError):
+        await coordinator.async_write_register(register, 1)
+
+    assert module.count(PATH_SET) == 0
+
+
+async def test_no_write_on_a_stove_set_up_in_another_configuration(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The model table allows the register; the stove's configuration does not."""
+    module = await setup_ktr(hass, aioclient_mock, CONFIG_2 | {175: 3})
+    coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data
+
+    with pytest.raises(ServiceValidationError) as err:
+        await coordinator.async_write_register(188, 3)
+
+    assert err.value.translation_key == "ducting_setup_not_verified"
+    assert module.count(PATH_SET) == 0
+
+
+async def test_no_write_when_the_module_reports_another_model(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The fresh read also checks the model."""
+    module = await setup_ktr(hass, aioclient_mock, CONFIG_2)
+    module.model = 7
+    coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_write_register(188, 3)
+
+    assert err.value.translation_key == "model_mismatch"
+    assert module.count(PATH_SET) == 0
