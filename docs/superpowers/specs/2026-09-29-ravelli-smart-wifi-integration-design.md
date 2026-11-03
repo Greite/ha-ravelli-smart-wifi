@@ -408,8 +408,10 @@ Not verified:
 - The half degree of the current temperature on the thermostat card.
 - The HYDRO-RDS and ECO-RDS boards.
 - On KTR-HYDRO: the codes 3, 4, 6 and 9, never seen; which schedule flag
-  the stove follows (`key=033` or `chrono`); on and off sent from Home
-  Assistant.
+  the stove follows (`key=033` or `chrono`); every command sent from Home
+  Assistant: on and off, the ambient and water targets (registers 50 and
+  49, manual modes included) and the clock (59 to 64). The cycle of
+  2026-11-03 was run from the remote control.
 - On STILO: every status code and the off code, which register holds the
   ambient temperature and in which unit, `flame`, which schedule flag the
   stove follows, the ducting registers 184 to 189, and every command.
