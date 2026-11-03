@@ -278,8 +278,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         await self._async_command(command)
 
     def _check_schedule_start(self) -> None:
-        """Refuse what lets a program start a board with no known off code."""
-        if not self.model.off_verified:
+        """Refuse what lets a program start a board not verified for it."""
+        # With no known off code, or no known schedule flag, Home Assistant
+        # cannot tell whether a program would start the stove.
+        if not (self.model.off_verified and self.model.schedule_flag_verified):
             raise _invalid("schedule_not_verified")
 
     async def async_set_schedule_enabled(self, enabled: bool) -> None:

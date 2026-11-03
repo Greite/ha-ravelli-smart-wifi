@@ -35,7 +35,7 @@ KTR-HYDRO and STILO boards, which use the same main and clock registers
 
 | Model code | Vendor name | Status |
 |---|---|---|
-| 6 | KTR-HYDRO | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent |
+| 6 | KTR-HYDRO | Transcribed from the vendor UI; status, ambient and water temperatures checked over one cycle by a user; only code 0 is off; turning the schedule on and storing a program refused |
 | 7 | AIR-RDS | Verified on real hardware |
 | 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
@@ -407,9 +407,9 @@ Not verified:
 - A program name of 15 characters that holds an accented letter.
 - The half degree of the current temperature on the thermostat card.
 - The HYDRO-RDS and ECO-RDS boards.
-- On KTR-HYDRO: every status code and the off code, the half degrees of
-  register 1, `flame` while working, which schedule flag the stove follows
-  (`key=033` or `chrono`), and every command.
+- On KTR-HYDRO: the codes 3, 4, 6 and 9, never seen; which schedule flag
+  the stove follows (`key=033` or `chrono`); on and off sent from Home
+  Assistant.
 - On STILO: every status code and the off code, which register holds the
   ambient temperature and in which unit, `flame`, which schedule flag the
   stove follows, the ducting registers 184 to 189, and every command.
@@ -464,3 +464,4 @@ Not verified:
 | STILO (model 14) | Supported, transcribed from the vendor UI read on another board's module: category 2 only, target 50 and power 51 writable with the bounds of the other boards, no comfort settings, no ducting entity. Empty status table and `off_codes`, as on KTR-HYDRO. No ambient temperature (`ambient_register` None). Flame sensor disabled by default and `schedule_flag_verified` false, as on KTR-HYDRO | Issue 5 asked for model 14, with no reading. The page gives ambient in register 0 in half degrees, as it does for KTR-AIR BLDC, where register 6 held it on two stoves: showing a guessed room temperature could drive heating automations. The ducting registers (184 and 185 from 7 to 41, 186 mode, 187 to 189 fans OFF, P1 to P5 or AUTO) differ from the RDS ones and were not read. A stove sold as Stilo reported board 8 in issue 3 |
 | KTR-AIR BLDC ducting selects | In configuration 2 (register 175), the front fan sensor stays empty, and three selects write registers 188 "Ducting fan" (0 off, 1 to 5, 6 auto), 189 "Ducting direction" (0 rear left to 4 rear right) and 190 "Ducting split" (0 front / rear left, 1 equal, 2 rear / rear right), with those bounds. They are created only when 175 reads 2 at setup and are unavailable while it reads anything else. Model flag `has_front_fan` renamed `ktr_ducting` | Issue 3, eleven diagnostics downloads against the vendor app of a stove in configuration 2: every value of 189 and 190, and 188 at 2 and 3, read as set; the user reports that the app's "Vent. front" (188) drives the rear air. 188 at 0 seen on a screenshot only, 6 not seen. A write from Home Assistant is not verified yet: shipped in a beta for the user to check. These settings do not start or stop the stove |
 | KTR-AIR BLDC ducting writes under the lock | A write of 188, 189 or 190 first reads category 6 again under the lock, checks the model and that 175 still reads 2, and is refused (`ducting_setup_not_verified`) otherwise; nothing is sent | In 2026.10.6b4 only the availability of the selects checked 175, from the last poll: a command waiting for the lock could reach a register whose meaning had changed |
+| KTR-HYDRO off trusted | Status keys 0 off, 1 waiting to start, 2 ignition, 5 working, 7 final cleaning, 8 eco stop; 3, 4, 6 and 9 have no key. Code 0 is off (`off_codes` of 0 only): turning on is sent from 0. Turning the schedule on and storing a program are refused while `schedule_flag_verified` is false, not only while no off code is known | Issue 2, one cycle read on the remote on 2026-11-03: 0 showed the power icon with the stove cold, eco stop has its own code (8), as on KTR-AIR BLDC. Owner's decision, with the same criteria as for KTR-AIR BLDC. The remote showed the schedule active while `key=033` said disabled: a program written from Home Assistant could not be checked against what the stove follows |

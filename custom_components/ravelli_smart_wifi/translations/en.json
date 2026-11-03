@@ -285,7 +285,7 @@
       "message": "Select at least one day of the week."
     },
     "schedule_not_verified": {
-      "message": "The schedule of this stove cannot be turned on or edited from Home Assistant yet: its status code when it is off was never confirmed on a real stove, and a program can start it. Turning the schedule off and deleting programs still work."
+      "message": "The schedule of this stove cannot be turned on or edited from Home Assistant yet: how this stove model reports its off state or its schedule was never confirmed on a real stove, and a program can start it. Use the stove or its remote control. Turning the schedule off and deleting programs still work."
     },
     "schedule_power_range": {
       "message": "The power level must be between 1 and 5."

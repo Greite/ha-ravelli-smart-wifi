@@ -285,7 +285,7 @@
       "message": "Sélectionnez au moins un jour de la semaine."
     },
     "schedule_not_verified": {
-      "message": "Le programme horaire de ce poêle ne peut pas encore être activé ni modifié depuis Home Assistant : son code d'état à l'arrêt n'a jamais été confirmé sur un vrai poêle, et un programme peut l'allumer. Désactiver le programme horaire et supprimer des programmes restent possibles."
+      "message": "Le programme horaire de ce poêle ne peut pas encore être activé ni modifié depuis Home Assistant : la façon dont ce modèle signale son arrêt ou son programme horaire n'a jamais été confirmée sur un vrai poêle, et un programme peut l'allumer. Utilisez le poêle ou sa télécommande. Désactiver le programme horaire et supprimer des programmes restent possibles."
     },
     "schedule_power_range": {
       "message": "La puissance doit être comprise entre 1 et 5."

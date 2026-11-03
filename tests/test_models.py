@@ -303,18 +303,45 @@ def test_supported_models() -> None:
         assert not SUPPORTED_MODELS[code].has_ducting
 
 
-@pytest.mark.parametrize("model", [6, 14])
 @pytest.mark.parametrize("code", [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 42])
-def test_unread_board_status_means_nothing(model: int, code: int) -> None:
-    """No code was read on these boards: each is unknown, on and not igniting."""
-    decoded = state({2: code}, model=model)
+def test_unread_board_status_means_nothing(code: int) -> None:
+    """No code was read on STILO: each is unknown, on and not igniting."""
+    decoded = state({2: code}, model=14)
 
     assert decoded.status_key == "unknown"
     assert decoded.is_on is True
     # Off is never held back waiting for a flame nobody saw on this board.
     assert decoded.is_igniting is False
     assert decoded.in_alarm is False
-    assert SUPPORTED_MODELS[model].off_verified is False
+    assert SUPPORTED_MODELS[14].off_verified is False
+
+
+@pytest.mark.parametrize(
+    ("code", "key", "is_on", "is_igniting"),
+    [
+        (0, "off", False, False),
+        (1, "waiting_start", True, True),
+        (2, "ignition", True, True),
+        (3, "unknown", True, False),
+        (4, "unknown", True, False),
+        (5, "working", True, False),
+        (6, "unknown", True, False),
+        (7, "final_cleaning", True, False),
+        # Eco stop restarts by itself.
+        (8, "eco_stop", True, False),
+        (9, "unknown", True, False),
+    ],
+)
+def test_ktr_hydro_status_table(
+    code: int, key: str, is_on: bool, is_igniting: bool
+) -> None:
+    """Model 6 codes read on its remote over one cycle; only 0 is off."""
+    decoded = state({2: code}, model=6)
+
+    assert decoded.status_key == key
+    assert decoded.is_on is is_on
+    assert decoded.is_igniting is is_igniting
+    assert decoded.in_alarm is False
 
 
 def test_ktr_hydro_temperatures() -> None:

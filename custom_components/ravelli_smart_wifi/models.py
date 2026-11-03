@@ -102,6 +102,17 @@ KTR_STATUS_KEYS: dict[int, str] = {
     7: "final_cleaning",
     8: "eco_stop",
 }
+# Codes of a KTR-HYDRO stove, read on its remote control over one cycle:
+# 0 off, 1 hourglass and cleaning icon, 2 "ON", 5 "MOD", 8 "ECO" with an
+# hourglass, 7 "OFF" with the flame icon. 3, 4, 6 and 9 were never seen.
+KTR_HYDRO_STATUS_KEYS: dict[int, str] = {
+    0: "off",
+    1: "waiting_start",
+    2: "ignition",
+    5: "working",
+    7: "final_cleaning",
+    8: "eco_stop",
+}
 # The page of the module calls 8 and 9 alarms on the RDS boards. Code 9 was
 # seen once with an alarm on the display, 8 never: they are kept to refuse
 # turning on.
@@ -212,27 +223,26 @@ class StoveModel:
 
 SUPPORTED_MODELS: dict[int, StoveModel] = {
     # Transcribed from the page of the module: category 2 only, ambient in
-    # register 6 (remote probe), water in half degrees. Register 51 is 0 MIN
-    # or 1 MAX, not a power level: it is not written. No code was read on a
-    # stove: each is unknown, counts as on and never as an ignition, so off
-    # is always sent and turning on is refused.
+    # register 6 (remote probe), water in half degrees, both read against the
+    # remote. Register 51 is 0 MIN or 1 MAX, not a power level: it is not
+    # written. Status codes read on the remote; only 0 is off.
     6: StoveModel(
         code=6,
         name="KTR-HYDRO",
         categories=(CATEGORY_MAIN,),
         writable=(_COMMON_WRITABLE - {REG_POWER, REG_COMFORT_DELAY, REG_COMFORT_DELTA})
         | {REG_WATER_SETPOINT},
-        status_keys={},
+        status_keys=KTR_HYDRO_STATUS_KEYS,
         alarm_codes=frozenset(),
         has_water=True,
-        off_codes=frozenset(),
+        off_codes=frozenset({0}),
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
         water_divisor=2,
-        # Read once with the stove off: flame 1. Disabled by default out of caution.
+        # flame read 1 in every phase, off and cold included.
         flame_shows_fire=False,
-        # Read once: key=033 said disabled while chrono and register 37
-        # read 1, which meant enabled on KTR-AIR BLDC.
+        # key=033 said disabled while chrono and register 37 read 1, and the
+        # remote showed the schedule active.
         schedule_flag_verified=False,
     ),
     7: StoveModel(

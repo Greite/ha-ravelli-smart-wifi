@@ -341,7 +341,7 @@ async def test_ktr_air_bldc_turn_off_without_flame_is_refused(
 async def test_ktr_hydro(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """Model 6: water thermostat, no power level, no code with a meaning."""
+    """Model 6: water thermostat, no power level, status read on its remote."""
     module = await setup_model(hass, aioclient_mock, 6)
     registry = er.async_get(hass)
 
@@ -352,14 +352,14 @@ async def test_ktr_hydro(
     assert module.count(PATH_GET, key="020", category="11") == 0
 
     stove = climate(hass, "stove")
-    assert stove.state == "heat"
-    assert stove.attributes.get("hvac_action") is None
+    assert stove.state == "off"
+    assert stove.attributes["hvac_action"] == "off"
     assert "fan_modes" not in stove.attributes
     assert stove.attributes["current_temperature"] == 21
     water = climate(hass, "water")
     assert water.attributes["current_temperature"] == 45.5
     assert water.attributes["temperature"] == 60
-    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "unknown"
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "off"
     assert (
         hass.states.get(entity_id_for(hass, "sensor", "water_temperature")).state
         == "45.5"
@@ -458,39 +458,62 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
 
 
 @pytest.mark.parametrize("status", [0, 5, 42])
-@pytest.mark.parametrize(("model", "key"), [(6, "stove"), (6, "water"), (14, "stove")])
 async def test_unread_board_turn_on_is_refused(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    status: int,
-    model: int,
-    key: str,
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """No code of these boards is trusted as off: Home Assistant cannot tell."""
-    module = await setup_model(hass, aioclient_mock, model)
+    """No code of STILO is trusted as off: Home Assistant cannot tell."""
+    module = await setup_model(hass, aioclient_mock, 14)
     module.common[2] = status
 
     with pytest.raises(ServiceValidationError) as err:
-        await call(hass, key, "turn_on")
+        await call(hass, "stove", "turn_on")
 
     assert err.value.translation_key == "turn_on_not_verified"
     assert module.count(PATH_GET, key="022") == 0
 
 
-@pytest.mark.parametrize("model", [6, 14])
 @pytest.mark.parametrize("flame", [0, 1, 255])
 @pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
 async def test_unread_board_turn_off_is_always_sent(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, flame: int
+) -> None:
+    """Nobody saw which code is an ignition on STILO: off is never held."""
+    module = await setup_model(hass, aioclient_mock, 14)
+    module.common[2] = status
+    module.extra["flame"] = flame
+
+    await call(hass, "stove", "turn_off")
+
+    assert module.count(PATH_GET, key="022", status="0") == 1
+
+
+@pytest.mark.parametrize(
+    ("status", "sent"), [(0, 1), (1, 0), (2, 0), (5, 0), (7, 0), (8, 0), (42, 0)]
+)
+@pytest.mark.parametrize("key", ["stove", "water"])
+async def test_ktr_hydro_turns_on_from_code_0_only(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     status: int,
-    flame: int,
-    model: int,
+    sent: int,
+    key: str,
 ) -> None:
-    """Nobody saw which code is an ignition on these boards: off is never held."""
-    module = await setup_model(hass, aioclient_mock, model)
+    """Final cleaning (7), eco stop (8) and unknown codes count as on."""
+    module = await setup_model(hass, aioclient_mock, 6)
     module.common[2] = status
-    module.extra["flame"] = flame
+
+    await call(hass, key, "turn_on")
+
+    assert module.count(PATH_GET, key="022", status="1") == sent
+
+
+@pytest.mark.parametrize("status", [1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
+async def test_ktr_hydro_turn_off_is_sent_whenever_on(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """The board reads flame 1 in every phase: off never waits for the flame."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    module.common[2] = status
 
     await call(hass, "stove", "turn_off")
 
