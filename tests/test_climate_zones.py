@@ -487,37 +487,68 @@ async def test_unread_board_turn_off_is_always_sent(
     assert module.count(PATH_GET, key="022", status="0") == 1
 
 
-@pytest.mark.parametrize(
-    ("status", "sent"), [(0, 1), (1, 0), (2, 0), (5, 0), (7, 0), (8, 0), (42, 0)]
-)
+@pytest.mark.parametrize("alarm", [0, 255])
+@pytest.mark.parametrize("flame", [0, 1, 255])
+@pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
 @pytest.mark.parametrize("key", ["stove", "water"])
-async def test_ktr_hydro_turns_on_from_code_0_only(
+async def test_ktr_hydro_turn_on(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    key: str,
+    status: int,
+    flame: int,
+    alarm: int,
+) -> None:
+    """On is sent from 0 without an alarm only; refused with an alarm."""
+    module = await setup_model(hass, aioclient_mock, 6)
+    module.common[2] = status
+    module.common[3] = alarm
+    module.extra["flame"] = flame
+
+    if alarm:
+        with pytest.raises(ServiceValidationError) as err:
+            await call(hass, key, "turn_on")
+        assert err.value.translation_key == "turn_on_in_alarm"
+    else:
+        await call(hass, key, "turn_on")
+
+    sent = 1 if status == 0 and not alarm else 0
+    assert module.count(PATH_GET, key="022", status="1") == sent
+    assert module.count(PATH_GET, key="022", status="0") == 0
+
+
+@pytest.mark.parametrize("alarm", [0, 255])
+@pytest.mark.parametrize("flame", [0, 1, 255])
+@pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
+async def test_ktr_hydro_turn_off(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     status: int,
-    sent: int,
-    key: str,
+    flame: int,
+    alarm: int,
 ) -> None:
-    """Final cleaning (7), eco stop (8) and unknown codes count as on."""
+    """Off waits for the flame in 1 and 2 only, alarm or not; else it is sent.
+
+    The stove read flame 1 in every phase, but the rule must hold whatever
+    the module reports. Off with an alarm is sent even from code 0.
+    """
     module = await setup_model(hass, aioclient_mock, 6)
     module.common[2] = status
+    module.common[3] = alarm
+    module.extra["flame"] = flame
 
-    await call(hass, key, "turn_on")
+    if status in (1, 2) and flame == 0:
+        with pytest.raises(ServiceValidationError) as err:
+            await call(hass, "stove", "turn_off")
+        assert err.value.translation_key == "turn_off_during_ignition"
+        sent = 0
+    else:
+        await call(hass, "stove", "turn_off")
+        # Off and no alarm: nothing to stop.
+        sent = 0 if status == 0 and not alarm else 1
 
-    assert module.count(PATH_GET, key="022", status="1") == sent
-
-
-@pytest.mark.parametrize("status", [1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
-async def test_ktr_hydro_turn_off_is_sent_whenever_on(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
-) -> None:
-    """The board reads flame 1 in every phase: off never waits for the flame."""
-    module = await setup_model(hass, aioclient_mock, 6)
-    module.common[2] = status
-
-    await call(hass, "stove", "turn_off")
-
-    assert module.count(PATH_GET, key="022", status="0") == 1
+    assert module.count(PATH_GET, key="022", status="0") == sent
+    assert module.count(PATH_GET, key="022", status="1") == 0
 
 
 @pytest.mark.parametrize("model", [6, 14])
