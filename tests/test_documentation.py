@@ -143,6 +143,7 @@ def test_readme_describes_every_entity() -> None:
     )
     assert 'Selects "Ducting fan", "Ducting direction" and "Ducting split"' in README
     assert "on another setup they are not created" in README
+    assert "direction and split had no visible effect on the air" in README
     assert (
         "Flue gas temperature"
         not in README.split("## What you get")[1].split("\n## ")[0]
