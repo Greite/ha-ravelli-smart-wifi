@@ -35,7 +35,7 @@ KTR-HYDRO and STILO boards, which use the same main and clock registers
 
 | Model code | Vendor name | Status |
 |---|---|---|
-| 6 | KTR-HYDRO | Transcribed from the vendor UI; status, ambient and water temperatures checked over one cycle by a user; only code 0 is off; turning the schedule on and storing a program refused |
+| 6 | KTR-HYDRO | Transcribed from the vendor UI; status, ambient and water temperatures checked over one cycle by a user; on and off, room and water targets and clock checked from Home Assistant by the same user; only code 0 is off; turning the schedule on and storing a program refused |
 | 7 | AIR-RDS | Verified on real hardware |
 | 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
 | 11 | HYDRO-RDS | Transcribed from the vendor UI, untested |
