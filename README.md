@@ -20,7 +20,7 @@ board, not on the commercial name of the stove.
 | HYDRO-RDS | Written from the module's own web page, not tested |
 | ECO-RDS | Written from the module's own web page, not tested |
 | KTR-AIR BLDC | Checked by a user on a real stove, firmware 0.51: status and eco stop, on and off, target, power, schedule switch, clock, ambient temperature and front fan. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Storing a program and alarms are not verified on this board. The ducting settings were read on a second stove against the vendor app; there, the ducting fan set from Home Assistant started the rear air |
-| KTR-HYDRO | Checked by a user on a real stove, firmware 0.51, over one cycle started from the remote: status, ambient and water temperatures. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Turning on and off from Home Assistant is new: check the stove follows. Turning the schedule on and storing a program stay refused: the module reports two different states for the schedule, and the stove follows its remote. No power level: the board has MIN and MAX instead |
+| KTR-HYDRO | Checked by a user on a real stove, firmware 0.51, status, ambient and water temperatures, on and off, room and water targets, and clock. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Turning the schedule on and storing a program stay refused: the schedule has two flags, one set by the remote and one by the page of the module, and which one starts the stove is not known. Manual mode and alarms are not verified on this board. No power level: the board has MIN and MAX instead |
 | STILO | Written from the module's own web page, not tested on a stove. No status code was read on this board yet: the status shows unknown, the thermostat always shows on, and turning on, turning the schedule on and storing a program are refused. Turning off is always sent. The room temperature is not shown until it is read against the display of a stove, and the ducting settings are not shown |
 | Any other board | Refused at setup |
 
@@ -232,6 +232,9 @@ is needed.
 Thanks to [@nicolasquenard-cpu](https://github.com/nicolasquenard-cpu) for the
 readings on a Ravelli Flexi 7 that made the KTR-AIR BLDC support possible
 ([#1](https://github.com/Greite/ha-ravelli-smart-wifi/issues/1)).
+Thanks to [@piewankell](https://github.com/piewankell) for the readings
+that made the KTR-HYDRO support possible
+([#2](https://github.com/Greite/ha-ravelli-smart-wifi/issues/2)).
 
 ## Licence
 
