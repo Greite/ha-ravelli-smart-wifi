@@ -167,38 +167,6 @@
         "name": "Puissance"
       }
     },
-    "select": {
-      "ducting_direction": {
-        "name": "Direction de la canalisation",
-        "state": {
-          "rear_left": "Arrière gauche",
-          "three_quarter_rear_left": "3/4 arrière gauche",
-          "middle": "Milieu",
-          "three_quarter_rear_right": "3/4 arrière droite",
-          "rear_right": "Arrière droite"
-        }
-      },
-      "ducting_fan": {
-        "name": "Ventilation canalisée",
-        "state": {
-          "0": "Arrêt",
-          "1": "P1",
-          "2": "P2",
-          "3": "P3",
-          "4": "P4",
-          "5": "P5",
-          "auto": "Auto"
-        }
-      },
-      "ducting_split": {
-        "name": "Répartition de la canalisation",
-        "state": {
-          "front_rear_left": "Avant / arrière gauche",
-          "equal": "Égale",
-          "rear_rear_right": "Arrière / arrière droite"
-        }
-      }
-    },
     "sensor": {
       "alarm": {
         "name": "Message d'alarme",
@@ -253,9 +221,6 @@
     },
     "device_not_found": {
       "message": "L'appareil sélectionné n'est pas un poêle Ravelli configuré et chargé."
-    },
-    "ducting_setup_not_verified": {
-      "message": "La configuration de canalisation du poêle a changé : ce réglage n'est pas envoyé, son registre peut désormais avoir un autre sens. Rechargez l'intégration."
     },
     "model_mismatch": {
       "message": "Le module indique maintenant le modèle de poêle {model} au lieu du modèle {expected}. Reconfigurez l'intégration."

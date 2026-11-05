@@ -26,9 +26,7 @@ from .const import (
     SLOW_REFRESH_INTERVAL,
 )
 from .models import (
-    CATEGORY_DUCTING,
     CATEGORY_MAIN,
-    KTR_DUCT_CONTROL_REGISTERS,
     SLOT_COUNT,
     SUPPORTED_MODELS,
     InvalidPayloadError,
@@ -232,21 +230,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 minimum=str(err.minimum),
                 maximum=str(err.maximum),
             ) from err
-
-        async def command() -> None:
-            if register in KTR_DUCT_CONTROL_REGISTERS:
-                # Their meaning depends on register 175: read it again under
-                # the lock, as the last poll may be older than the command.
-                state = StoveState.from_payloads(
-                    [await self.client.get_registers(CATEGORY_DUCTING)]
-                )
-                self._reported_model = state.model
-                self._check_model(state.model)
-                if not state.has_ducting_controls:
-                    raise _invalid("ducting_setup_not_verified")
-            await self.client.set_register(register, value)
-
-        await self._async_command(command)
+        await self._async_command(lambda: self.client.set_register(register, value))
 
     async def async_set_power(self, on: bool) -> None:
         """Turn the stove on or off, if its current state allows it."""

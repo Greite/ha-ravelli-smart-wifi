@@ -17,7 +17,6 @@ EXCEPTIONS = {
     "cannot_connect",
     "command_refused",
     "device_not_found",
-    "ducting_setup_not_verified",
     "model_mismatch",
     "not_winet",
     "register_not_writable",
@@ -46,7 +45,6 @@ ENTITIES = {
     "calendar": {"schedule"},
     "climate": {"duct_left", "duct_right", "stove", "water"},
     "number": {"comfort_delay", "comfort_delta", "power"},
-    "select": {"ducting_direction", "ducting_fan", "ducting_split"},
     "sensor": {
         "alarm",
         "ambient_temperature",

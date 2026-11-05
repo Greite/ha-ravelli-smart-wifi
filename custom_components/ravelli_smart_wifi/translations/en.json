@@ -167,38 +167,6 @@
         "name": "Power level"
       }
     },
-    "select": {
-      "ducting_direction": {
-        "name": "Ducting direction",
-        "state": {
-          "rear_left": "Rear left",
-          "three_quarter_rear_left": "3/4 rear left",
-          "middle": "Middle",
-          "three_quarter_rear_right": "3/4 rear right",
-          "rear_right": "Rear right"
-        }
-      },
-      "ducting_fan": {
-        "name": "Ducting fan",
-        "state": {
-          "0": "Off",
-          "1": "P1",
-          "2": "P2",
-          "3": "P3",
-          "4": "P4",
-          "5": "P5",
-          "auto": "Auto"
-        }
-      },
-      "ducting_split": {
-        "name": "Ducting split",
-        "state": {
-          "front_rear_left": "Front / rear left",
-          "equal": "Equal",
-          "rear_rear_right": "Rear / rear right"
-        }
-      }
-    },
     "sensor": {
       "alarm": {
         "name": "Alarm message",
@@ -253,9 +221,6 @@
     },
     "device_not_found": {
       "message": "The selected device is not a Ravelli stove that is set up and loaded."
-    },
-    "ducting_setup_not_verified": {
-      "message": "The ducting setup of the stove changed: this setting is not sent, its register may mean something else now. Reload the integration."
     },
     "model_mismatch": {
       "message": "The module now reports stove model {model} instead of model {expected}. Reconfigure the integration."
