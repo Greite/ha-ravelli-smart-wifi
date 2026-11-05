@@ -6,7 +6,7 @@ import json
 import aiohttp
 from homeassistant.components.diagnostics import REDACTED
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ravelli_smart_wifi.diagnostics import (
     async_get_config_entry_diagnostics,

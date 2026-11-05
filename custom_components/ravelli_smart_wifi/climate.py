@@ -72,7 +72,7 @@ async def async_setup_entry(
 class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
     """Thermostat backed by one set point register with special values."""
 
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 1
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
     _register: int
@@ -105,7 +105,7 @@ class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
         super()._handle_coordinator_update()
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return the target, None while a preset replaces it."""
         return self._numeric_target()
 
@@ -195,7 +195,7 @@ class RavelliStoveClimate(RavelliPowerClimate):
         return HVAC_ACTIONS.get(self.coordinator.data.state.status_key)
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the ambient temperature."""
         return self.coordinator.data.state.ambient_temperature
 
@@ -236,7 +236,7 @@ class RavelliDuctClimate(RavelliSetpointClimate):
         return HVACMode.OFF if raw is None or raw == DUCT_OFF else HVACMode.HEAT
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the temperature of the outlet, None without a reading."""
         return self.coordinator.data.state.raw(self._temperature_register) or None
 
@@ -278,6 +278,6 @@ class RavelliWaterClimate(RavelliPowerClimate):
         super().__init__(coordinator, "water")
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the water temperature."""
         return self.coordinator.data.state.water_temperature

@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import tomllib
 
 from custom_components.ravelli_smart_wifi.const import DOMAIN
 
@@ -37,10 +38,17 @@ def test_manifest_keys_are_sorted_as_hassfest_requires() -> None:
 def test_hacs_manifest() -> None:
     """HACS reads the display name, the minimum Home Assistant version, and installs from the release zip."""
     hacs = json.loads((ROOT / "hacs.json").read_text())
+    dev = tomllib.loads((ROOT / "pyproject.toml").read_text())["dependency-groups"]
+    # The minimum is the only version the tests run against.
+    tested = next(
+        pin.removeprefix("pytest-homeassistant==")
+        for pin in dev["dev"]
+        if pin.startswith("pytest-homeassistant==")
+    )
 
     assert hacs == {
         "name": "Ravelli Smart Wi-Fi",
-        "homeassistant": "2026.9.0",
+        "homeassistant": tested,
         "render_readme": True,
         "zip_release": True,
         "filename": "ravelli_smart_wifi.zip",

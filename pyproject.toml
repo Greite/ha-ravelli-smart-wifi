@@ -8,7 +8,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "getmac==0.9.5",
-    "pytest-homeassistant-custom-component==0.13.367",
+    "pytest-homeassistant==2026.11.0",
     "ruff==0.16.9",
 ]
 
@@ -17,6 +17,9 @@ package = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Let Home Assistant install its httpx alias before respx is imported.
+addopts = "-p no:respx"
 testpaths = ["tests"]
 pythonpath = ["."]
 

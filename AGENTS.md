@@ -40,4 +40,4 @@ uv run pytest tests/test_coordinator.py -k turn_off            # one area
 - `docs/` is excluded from `ruff` on purpose: the plan holds code blocks that must not be reformatted.
 - An entity that changes unit or disappears leaves an orphan in the entity registry and statistics issues on installs that upgrade.
 - Home Assistant sees the `brand/` folder only after a restart, and serves only `icon.png`, `logo.png` and their `@2x` and `dark_` variants.
-- hassfest runs the image of the latest stable Home Assistant: up to 2026.10 it rejects `categories` in `manifest.json` (only `dev` knows the key), so the HACS action warning about missing categories stays until the image accepts it.
+- Tests use `pytest-homeassistant` (`pytest-homeassistant-custom-component` does not work from 2026.11), pinned to the minimum Home Assistant of `hacs.json`: `tests/test_manifest.py` keeps the two equal, so raise them together, with the README. Its `-p no:respx` in `pyproject.toml` lets Home Assistant alias `httpx` first.

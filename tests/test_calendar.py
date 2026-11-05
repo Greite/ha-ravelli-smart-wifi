@@ -6,7 +6,7 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ravelli_smart_wifi.calendar import DESCRIPTIONS
 from custom_components.ravelli_smart_wifi.const import DOMAIN

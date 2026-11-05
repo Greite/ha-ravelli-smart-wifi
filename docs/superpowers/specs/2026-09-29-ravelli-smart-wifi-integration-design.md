@@ -366,7 +366,7 @@ name, IP addresses, gateway and device name are redacted.
 ## 10. Testing
 
 Tests are written before the code they cover. They run with `pytest` and
-`pytest-homeassistant-custom-component`, in an environment managed by `uv`.
+`pytest-homeassistant`, in an environment managed by `uv`.
 
 | Level | Coverage |
 |---|---|
@@ -424,7 +424,7 @@ Not verified:
   commits. Conventional commits.
 - **Versions:** CalVer, annotated tags `vYYYY.MM` and `vYYYY.MM.N`. The
   manifest version follows the tag without the `v`.
-- **Home Assistant:** 2026.9.0 or later, the version the tests run against.
+- **Home Assistant:** 2026.11.0 or later, the version the tests run against.
 - **CI:** hassfest, HACS validation, ruff (lint and format check) and pytest,
   on push and pull request.
 - **Privacy:** no personal data in any file or commit message: no names, no
@@ -443,7 +443,7 @@ Not verified:
 | User step | Menu, then search with a progress screen | A search of a /22 network can take close to a minute |
 | Unknown status code | Home Assistant `unknown` state instead of an `unknown` enum option | `unknown` is a reserved state in Home Assistant |
 | On and off commands | Fresh read of the stove state before the safety rules | The polled state can be 30 seconds old |
-| Minimum Home Assistant version | 2026.9.0 | Only tested version |
+| Minimum Home Assistant version | 2026.11.0, raised from 2026.9.0 after 2026.11.1b1 | Climate temperatures use the `native_` names of 2026.11: the `ClimateEntity` of 2026.9 and 2026.10 reads only the old names, so the thermostats would show no temperature there. The tests run against 2026.11.0 with `pytest-homeassistant`, which replaces `pytest-homeassistant-custom-component` from that version |
 | Calendar descriptions | In French when Home Assistant is in French, in English otherwise | Asked by the owner after the final review |
 | Status codes | Table read on the display: 1 to 4 are ignition, waiting for the flame, flame present, working; 5, 8 and 9 have no key (9 seen once with an alarm, meaning not confirmed); igniting is 1 to 3; on is every code but 0, 6, 8 and 9; turning on is also refused for a non-zero alarm register | Hardware verification, 2026-09-29, 2026-10-06 and 2026-10-10 |
 | Flue gas temperature | Sensor removed | Hardware verification, 2026-09-29 and 2026-10-06 |
