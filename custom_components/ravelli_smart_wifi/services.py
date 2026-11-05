@@ -63,14 +63,13 @@ def _coordinator(hass: HomeAssistant, device_id: str) -> RavelliCoordinator:
     """Return the coordinator of a stove that is loaded."""
     device = dr.async_get(hass).async_get(device_id)
     if device is not None:
-        for entry_id in device.config_entries:
-            entry = hass.config_entries.async_get_entry(entry_id)
-            if (
-                entry is not None
-                and entry.domain == DOMAIN
-                and entry.state is ConfigEntryState.LOADED
-            ):
-                return entry.runtime_data
+        entry = hass.config_entries.async_get_entry(device.config_entry_id)
+        if (
+            entry is not None
+            and entry.domain == DOMAIN
+            and entry.state is ConfigEntryState.LOADED
+        ):
+            return entry.runtime_data
     raise ServiceValidationError(
         translation_domain=DOMAIN, translation_key="device_not_found"
     )
