@@ -23,6 +23,7 @@ PLATFORMS: list[Platform] = [
     Platform.CALENDAR,
     Platform.CLIMATE,
     Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
 ]

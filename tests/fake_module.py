@@ -49,15 +49,19 @@ class FakeModule:
             del self.categories[6]
         if model == 8:
             # Read on a KTR-AIR BLDC stove: register 0 stays at 0, the
-            # ambient temperature is register 6, the front fan register 187.
+            # ambient temperature is register 6. Ducting configuration 175
+            # is 3 there, where the front fan is register 187; 188 stays at 1.
             self.categories[2].update({0: 0, 6: 21})
-            self.categories[6] = {175: 3, 183: 20, 184: 20, 185: 20, 187: 6}
+            self.categories[6] = {175: 3, 183: 20, 184: 20, 185: 20, 187: 6, 188: 1}
         if model == 11:
             self.categories[2].update({1: 45, 49: 60})
         if model == 6:
             # From the page of the module: ambient in register 6, water in
             # half degrees in register 1, power 0 MIN or 1 MAX.
             self.categories[2].update({0: 0, 1: 91, 6: 21, 49: 60, 51: 1})
+        if model == 14:
+            # Both candidate ambient registers hold a value: neither may show.
+            self.categories[2].update({0: 43, 6: 21})
         self.extra: dict[str, Any] = capture["extra"]
         if model == 8:
             # A KTR-AIR BLDC stove reported a flame in every phase.
@@ -66,6 +70,9 @@ class FakeModule:
             # Read on a KTR-HYDRO stove, off: flame 1, and chrono 1
             # while key=033 said the schedule was disabled.
             self.extra.update({"flame": 1, "chrono": 1})
+        if model == 14:
+            # Whether this board reports a flame is unknown: assume it does.
+            self.extra["flame"] = 0
         self.schedule_enabled: bool = capture["schedule"]["enabled"]
         self.programs: list[list[Any]] = capture["schedule"]["programs"]
         self.requests: list[tuple[str, dict[str, str]]] = []

@@ -264,6 +264,21 @@ async def test_front_fan_is_ktr_air_bldc_only(
     assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
 
 
+@pytest.mark.parametrize("config", [0, 2, 4])
+async def test_front_fan_is_empty_outside_configuration_3(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, config: int
+) -> None:
+    """Only configuration 3 has a front fan register read on a stove."""
+    module = await setup_model(hass, aioclient_mock, 8)
+    module.categories[6][175] = config
+    await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    fan = hass.states.get(entity_id_for(hass, "sensor", "front_fan"))
+    assert fan.state == "unknown"
+    assert fan.attributes["raw_value"] is None
+
+
 async def test_water_temperature_is_hydro_only(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
@@ -354,11 +369,40 @@ async def test_ktr_hydro(
     assert module.categories[2][49] == 65
 
 
-async def test_ktr_hydro_flame_is_disabled_by_default(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_stilo(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """Model 14: target and power, no code with a meaning, no room temperature."""
+    module = await setup_model(hass, aioclient_mock, 14)
+    registry = er.async_get(hass)
+
+    for key in ("duct_right", "duct_left", "water"):
+        assert not exists(hass, key)
+    for key in ("comfort_delta", "comfort_delay"):
+        assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_{key}") is None
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
+    assert module.count(PATH_GET, key="020", category="6") == 0
+    assert module.count(PATH_GET, key="020", category="11") == 0
+
+    stove = climate(hass, "stove")
+    assert stove.state == "heat"
+    assert stove.attributes["current_temperature"] is None
+    assert stove.attributes["fan_modes"] == ["1", "2", "3", "4", "5"]
+    ambient = entity_id_for(hass, "sensor", "ambient_temperature")
+    assert hass.states.get(ambient).state == "unknown"
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "unknown"
+
+    await call(hass, "stove", "set_temperature", temperature=22)
+    await call(hass, "stove", "set_fan_mode", fan_mode="4")
+    assert module.categories[2][50] == 22
+    assert module.categories[2][51] == 4
+
+
+@pytest.mark.parametrize("model", [6, 14])
+async def test_unread_board_flame_is_disabled_by_default(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
-    """The board reported a flame with the stove off."""
-    await setup_model(hass, aioclient_mock, 6)
+    """KTR-HYDRO reported a flame while off; nothing was read on STILO."""
+    await setup_model(hass, aioclient_mock, model)
 
     entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
     assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
@@ -372,6 +416,8 @@ async def test_ktr_hydro_flame_is_disabled_by_default(
         (6, True, 0, "unknown"),
         (6, False, 0, "off"),
         (6, True, 1, "on"),
+        # Nothing read on a STILO stove: same caution.
+        (14, False, 1, "unknown"),
         # The RDS capture holds chrono 0 with the schedule on: not a signal.
         (7, True, 0, "on"),
     ],
@@ -409,6 +455,36 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
     )
     # The calendar shows the starts the stove may make, unless surely off.
     assert bool(response[calendar]["events"]) is (expected != "off")
+
+
+@pytest.mark.parametrize("status", [0, 5, 42])
+async def test_unread_board_turn_on_is_refused(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """No code of STILO is trusted as off: Home Assistant cannot tell."""
+    module = await setup_model(hass, aioclient_mock, 14)
+    module.common[2] = status
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "stove", "turn_on")
+
+    assert err.value.translation_key == "turn_on_not_verified"
+    assert module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize("flame", [0, 1, 255])
+@pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
+async def test_unread_board_turn_off_is_always_sent(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, flame: int
+) -> None:
+    """Nobody saw which code is an ignition on STILO: off is never held."""
+    module = await setup_model(hass, aioclient_mock, 14)
+    module.common[2] = status
+    module.extra["flame"] = flame
+
+    await call(hass, "stove", "turn_off")
+
+    assert module.count(PATH_GET, key="022", status="0") == 1
 
 
 @pytest.mark.parametrize("alarm", [0, 255])
@@ -475,11 +551,12 @@ async def test_ktr_hydro_turn_off(
     assert module.count(PATH_GET, key="022", status="1") == 0
 
 
-async def test_ktr_hydro_schedule_cannot_start_the_stove(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+@pytest.mark.parametrize("model", [6, 14])
+async def test_unread_board_schedule_cannot_start_the_stove(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
     """A program can start the stove: only what stops it is sent."""
-    module = await setup_model(hass, aioclient_mock, 6)
+    module = await setup_model(hass, aioclient_mock, model)
     switch = entity_id_for(hass, "switch", "schedule")
     device = dr.async_get(hass).async_get_device_by_identifier(
         (DOMAIN, MAC), hass.config_entries.async_entries(DOMAIN)[0].entry_id

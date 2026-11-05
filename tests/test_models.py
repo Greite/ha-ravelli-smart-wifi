@@ -149,7 +149,25 @@ def test_ktr_air_bldc_ambient_is_register_6_in_degrees(
 )
 def test_front_fan(raw: int, expected: str | None) -> None:
     """Raw 6 was read as AUTO on the remote; other values are the speed."""
-    assert state({2: 5, 187: raw}, model=8).front_fan == expected
+    assert state({2: 5, 175: 3, 187: raw, 188: 1}, model=8).front_fan == expected
+
+
+@pytest.mark.parametrize(
+    ("config", "register"),
+    [(3, 187), (0, None), (1, None), (2, None), (4, None), (None, None)],
+)
+def test_front_fan_register_follows_the_ducting_configuration(
+    config: int | None, register: int | None
+) -> None:
+    """Only configuration 3 has a front fan read on a stove.
+
+    In configuration 2 the app's "Vent. front" (188) drives the rear air.
+    """
+    registers = {2: 5, 187: 6, 188: 1} | ({} if config is None else {175: config})
+    decoded = state(registers, model=8)
+
+    assert decoded.front_fan_register == register
+    assert decoded.front_fan == {187: "auto", None: None}[register]
 
 
 def test_manual_set_point_has_no_temperature() -> None:
@@ -262,25 +280,40 @@ def test_model_must_be_a_number() -> None:
 
 
 def test_supported_models() -> None:
-    """Five model codes, with the categories each one polls."""
-    assert sorted(SUPPORTED_MODELS) == [6, 7, 8, 11, 12]
+    """Six model codes, with the categories each one polls."""
+    assert sorted(SUPPORTED_MODELS) == [6, 7, 8, 11, 12, 14]
     assert SUPPORTED_MODELS[6].name == "KTR-HYDRO"
     assert SUPPORTED_MODELS[7].name == "AIR-RDS"
     assert SUPPORTED_MODELS[8].name == "KTR-AIR BLDC"
     assert SUPPORTED_MODELS[11].name == "HYDRO-RDS"
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
+    assert SUPPORTED_MODELS[14].name == "STILO"
     assert SUPPORTED_MODELS[6].categories == (2,)
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
     assert SUPPORTED_MODELS[8].categories == (2, 6)
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
+    assert SUPPORTED_MODELS[14].categories == (2,)
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water
     for code in (6, 11):
         assert SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
-    for code in (8, 12):
+    for code in (8, 12, 14):
         assert not SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
+
+
+@pytest.mark.parametrize("code", [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 42])
+def test_unread_board_status_means_nothing(code: int) -> None:
+    """No code was read on STILO: each is unknown, on and not igniting."""
+    decoded = state({2: code}, model=14)
+
+    assert decoded.status_key == "unknown"
+    assert decoded.is_on is True
+    # Off is never held back waiting for a flame nobody saw on this board.
+    assert decoded.is_igniting is False
+    assert decoded.in_alarm is False
+    assert SUPPORTED_MODELS[14].off_verified is False
 
 
 @pytest.mark.parametrize(
@@ -320,6 +353,11 @@ def test_ktr_hydro_temperatures() -> None:
     assert state({2: 5, 1: 0}, model=6).water_temperature is None
 
 
+def test_stilo_has_no_ambient_temperature() -> None:
+    """The page says register 0 in halves, as it does for KTR-AIR BLDC where it was wrong."""
+    assert state({2: 5, 0: 43, 6: 21}, model=14).ambient_temperature is None
+
+
 @pytest.mark.parametrize(
     ("model", "register", "value"),
     [
@@ -344,6 +382,11 @@ def test_ktr_hydro_temperatures() -> None:
         (6, 50, 41),
         (6, 49, 81),
         (6, 64, 0x99),
+        (14, 50, 5),
+        (14, 50, 41),
+        (14, 51, 1),
+        (14, 51, 5),
+        (14, 64, 0x99),
     ],
 )
 def test_valid_writes_pass(model: int, register: int, value: int) -> None:
@@ -392,6 +435,12 @@ def test_out_of_range_writes_are_refused(
         (6, 73),
         (6, 74),
         (6, 184),
+        # Ducting registers of this board are not read on a stove yet.
+        (14, 49),
+        (14, 73),
+        (14, 74),
+        (14, 184),
+        (14, 187),
         (7, 0),
         (7, 2),
         (7, 999),
