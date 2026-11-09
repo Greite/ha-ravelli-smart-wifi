@@ -44,14 +44,8 @@
       }
     },
     "select": {
-      "ducting_direction": {
-        "default": "mdi:arrow-left-right"
-      },
       "ducting_fan": {
         "default": "mdi:fan"
-      },
-      "ducting_split": {
-        "default": "mdi:call-split"
       }
     },
     "sensor": {

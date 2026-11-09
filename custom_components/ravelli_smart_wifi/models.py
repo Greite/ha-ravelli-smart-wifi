@@ -34,30 +34,17 @@ REG_KTR_AMBIENT_TEMP = 6
 REG_KTR_DUCT_CONFIG = 175
 REG_KTR_FRONT_FAN = 187
 REG_KTR_DUCT_FAN = 188
-REG_KTR_DUCT_DIRECTION = 189
-REG_KTR_DUCT_SPLIT = 190
 # Ducting configuration (register 175, set by the installer) decides which
 # ducting registers the page of the module shows. Only two were read on a
 # stove. In 3, 187 is the front fan, as the remote shows it. In 2, 188 is the
-# fan the vendor app calls front but that drives the rear air, 189 the
-# direction of the rear air and 190 the split between outlets. The page's
-# labels of 187 (rear) and 188 (front) are the other way round on both stoves.
+# rear left fan (the vendor app calls it front): the remote's rear right fan
+# shows in no register read, and 189 (direction) and 190 (split), stored and
+# shown by the app, moved no air, so neither is written.
 KTR_FRONT_FAN_CONFIG = 3
 KTR_DUCT_CONTROLS_CONFIG = 2
-KTR_DUCT_CONTROL_REGISTERS = frozenset(
-    {REG_KTR_DUCT_FAN, REG_KTR_DUCT_DIRECTION, REG_KTR_DUCT_SPLIT}
-)
 
-# Options of the KTR-AIR BLDC ducting registers, indexed by raw value.
+# Options of the KTR-AIR BLDC fan registers, indexed by raw value.
 FAN_OPTIONS = ("0", "1", "2", "3", "4", "5", "auto")
-DUCT_DIRECTION_OPTIONS = (
-    "rear_left",
-    "three_quarter_rear_left",
-    "middle",
-    "three_quarter_rear_right",
-    "rear_right",
-)
-DUCT_SPLIT_OPTIONS = ("front_rear_left", "equal", "rear_rear_right")
 
 
 def option(options: tuple[str, ...], raw: int | None) -> str | None:
@@ -138,8 +125,6 @@ WRITE_BOUNDS: dict[int, tuple[int, int]] = {
     REG_DUCT_RIGHT_SETPOINT: (DUCT_OFF, 41),
     REG_DUCT_LEFT_SETPOINT: (DUCT_OFF, 41),
     REG_KTR_DUCT_FAN: (0, 6),
-    REG_KTR_DUCT_DIRECTION: (0, 4),
-    REG_KTR_DUCT_SPLIT: (0, 2),
 }
 
 _COMMON_WRITABLE = frozenset(
@@ -206,7 +191,7 @@ class StoveModel:
     ambient_register: int | None = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
     water_divisor: int = 1
-    # The ducting registers of KTR-AIR BLDC (175, 187 to 190) are read.
+    # The ducting registers of KTR-AIR BLDC (175, 187, 188) are read.
     ktr_ducting: bool = False
     # False when the board reports a flame with no fire: its flame sensor
     # is disabled by default.
@@ -263,7 +248,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         name="KTR-AIR BLDC",
         categories=(CATEGORY_MAIN, CATEGORY_DUCTING),
         writable=(_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA})
-        | {REG_KTR_DUCT_FAN, REG_KTR_DUCT_DIRECTION, REG_KTR_DUCT_SPLIT},
+        | {REG_KTR_DUCT_FAN},
         status_keys=KTR_STATUS_KEYS,
         alarm_codes=frozenset(),
         off_codes=frozenset({0}),
@@ -453,7 +438,7 @@ class StoveState:
 
     @property
     def has_ducting_controls(self) -> bool:
-        """Whether registers 188 to 190 mean what was read on a stove."""
+        """Whether register 188 means what was read on a stove."""
         return self.raw(REG_KTR_DUCT_CONFIG) == KTR_DUCT_CONTROLS_CONFIG
 
     @property

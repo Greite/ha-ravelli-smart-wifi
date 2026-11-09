@@ -46,7 +46,7 @@ ENTITIES = {
     "calendar": {"schedule"},
     "climate": {"duct_left", "duct_right", "stove", "water"},
     "number": {"comfort_delay", "comfort_delta", "power"},
-    "select": {"ducting_direction", "ducting_fan", "ducting_split"},
+    "select": {"ducting_fan"},
     "sensor": {
         "alarm",
         "ambient_temperature",

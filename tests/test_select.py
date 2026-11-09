@@ -51,60 +51,28 @@ async def setup_ktr(
     return module
 
 
-@pytest.mark.parametrize(
-    ("key", "state", "options"),
-    [
-        ("ducting_fan", "1", ["0", "1", "2", "3", "4", "5", "auto"]),
-        (
-            "ducting_direction",
-            "middle",
-            [
-                "rear_left",
-                "three_quarter_rear_left",
-                "middle",
-                "three_quarter_rear_right",
-                "rear_right",
-            ],
-        ),
-        ("ducting_split", "equal", ["front_rear_left", "equal", "rear_rear_right"]),
-    ],
-)
-async def test_ducting_selects_of_configuration_2(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    key: str,
-    state: str,
-    options: list[str],
+async def test_rear_left_fan_of_configuration_2(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """The values read against the vendor app of a stove in configuration 2."""
+    """The value read against the vendor app of a stove in configuration 2."""
     await setup_ktr(hass, aioclient_mock, CONFIG_2)
 
-    select = hass.states.get(entity_id_for(hass, "select", key))
-    assert select.state == state
-    assert select.attributes["options"] == options
+    select = hass.states.get(entity_id_for(hass, "select", "ducting_fan"))
+    assert select.state == "1"
+    assert select.attributes["options"] == ["0", "1", "2", "3", "4", "5", "auto"]
+    assert hass.states.async_entity_ids("select") == [select.entity_id]
 
 
-@pytest.mark.parametrize(
-    ("key", "option", "register", "value"),
-    [
-        ("ducting_fan", "3", 188, 3),
-        ("ducting_fan", "auto", 188, 6),
-        ("ducting_fan", "0", 188, 0),
-        ("ducting_direction", "rear_right", 189, 4),
-        ("ducting_split", "rear_rear_right", 190, 2),
-    ],
-)
+@pytest.mark.parametrize(("option", "value"), [("3", 3), ("auto", 6), ("0", 0)])
 async def test_select_writes_its_register(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
-    key: str,
     option: str,
-    register: int,
     value: int,
 ) -> None:
-    """The raw value of the option is written and shows at once."""
+    """The raw value of the option is written to 188 and shows at once."""
     module = await setup_ktr(hass, aioclient_mock, CONFIG_2)
-    entity_id = entity_id_for(hass, "select", key)
+    entity_id = entity_id_for(hass, "select", "ducting_fan")
 
     await hass.services.async_call(
         "select",
@@ -113,20 +81,47 @@ async def test_select_writes_its_register(
         blocking=True,
     )
 
-    assert module.count(PATH_SET, regId=str(register), value=str(value)) == 1
+    assert module.count(PATH_SET, regId="188", value=str(value)) == 1
     assert hass.states.get(entity_id).state == option
+
+
+@pytest.mark.parametrize("register", [189, 190])
+async def test_direction_and_split_are_not_written(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, register: int
+) -> None:
+    """They moved no air on the stove read: they are not writable any more."""
+    module = await setup_ktr(hass, aioclient_mock, CONFIG_2)
+    coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data
+
+    with pytest.raises(ServiceValidationError) as err:
+        await coordinator.async_write_register(register, 1)
+
+    assert err.value.translation_key == "register_not_writable"
+    assert module.count(PATH_SET) == 0
+
+
+async def test_removed_selects_leave_the_registry(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The direction and split selects of the betas leave no orphan."""
+    registry = er.async_get(hass)
+    for key in ("ducting_direction", "ducting_split"):
+        registry.async_get_or_create("select", DOMAIN, f"{MAC}_{key}")
+
+    await setup_ktr(hass, aioclient_mock, CONFIG_2)
+
+    for key in ("ducting_direction", "ducting_split"):
+        assert registry.async_get_entity_id("select", DOMAIN, f"{MAC}_{key}") is None
 
 
 @pytest.mark.parametrize("config", [0, 1, 3, 4])
 async def test_no_select_outside_configuration_2(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, config: int
 ) -> None:
-    """Registers 188 to 190 were only read against the app in configuration 2."""
+    """Register 188 was only read against the app in configuration 2."""
     await setup_ktr(hass, aioclient_mock, CONFIG_2 | {175: config})
 
-    registry = er.async_get(hass)
-    for key in ("ducting_fan", "ducting_direction", "ducting_split"):
-        assert registry.async_get_entity_id("select", DOMAIN, f"{MAC}_{key}") is None
+    assert not hass.states.async_entity_ids("select")
 
 
 async def test_select_unavailable_when_the_configuration_changes(
@@ -151,12 +146,8 @@ async def test_no_select_on_another_board(
 
 
 @pytest.mark.parametrize("config", [None, 0, 1, 3, 4])
-@pytest.mark.parametrize("register", [188, 189, 190])
 async def test_no_write_once_the_configuration_changes(
-    hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
-    config: int | None,
-    register: int,
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, config: int | None
 ) -> None:
     """The configuration is read again under the lock before each write.
 
@@ -171,7 +162,7 @@ async def test_no_write_once_the_configuration_changes(
     coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data
 
     with pytest.raises(ServiceValidationError):
-        await coordinator.async_write_register(register, 1)
+        await coordinator.async_write_register(188, 1)
 
     assert module.count(PATH_SET) == 0
 

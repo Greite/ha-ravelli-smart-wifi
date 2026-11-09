@@ -28,7 +28,7 @@ from .const import (
 from .models import (
     CATEGORY_DUCTING,
     CATEGORY_MAIN,
-    KTR_DUCT_CONTROL_REGISTERS,
+    REG_KTR_DUCT_FAN,
     SLOT_COUNT,
     SUPPORTED_MODELS,
     InvalidPayloadError,
@@ -234,8 +234,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             ) from err
 
         async def command() -> None:
-            if register in KTR_DUCT_CONTROL_REGISTERS:
-                # Their meaning depends on register 175: read it again under
+            if register == REG_KTR_DUCT_FAN:
+                # Its meaning depends on register 175: read it again under
                 # the lock, as the last poll may be older than the command.
                 state = StoveState.from_payloads(
                     [await self.client.get_registers(CATEGORY_DUCTING)]

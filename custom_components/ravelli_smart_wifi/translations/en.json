@@ -168,18 +168,8 @@
       }
     },
     "select": {
-      "ducting_direction": {
-        "name": "Ducting direction",
-        "state": {
-          "rear_left": "Rear left",
-          "three_quarter_rear_left": "3/4 rear left",
-          "middle": "Middle",
-          "three_quarter_rear_right": "3/4 rear right",
-          "rear_right": "Rear right"
-        }
-      },
       "ducting_fan": {
-        "name": "Ducting fan",
+        "name": "Rear left fan",
         "state": {
           "0": "Off",
           "1": "P1",
@@ -188,14 +178,6 @@
           "4": "P4",
           "5": "P5",
           "auto": "Auto"
-        }
-      },
-      "ducting_split": {
-        "name": "Ducting split",
-        "state": {
-          "front_rear_left": "Front / rear left",
-          "equal": "Equal",
-          "rear_rear_right": "Rear / rear right"
         }
       }
     },
