@@ -37,8 +37,8 @@ REG_KTR_DUCT_FAN = 188
 # Ducting configuration (register 175, set by the installer) decides which
 # ducting registers the page of the module shows. Only two were read on a
 # stove. In 3, 187 is the front fan, as the remote shows it. In 2, 188 is the
-# rear left fan (the vendor app calls it front): the remote's rear right fan
-# shows in no register read, and 189 (direction) and 190 (split), stored and
+# rear left fan (the vendor app calls it front): no register was identified
+# for the rear right fan, and 189 (direction) and 190 (split), stored and
 # shown by the app, moved no air, so neither is written.
 KTR_FRONT_FAN_CONFIG = 3
 KTR_DUCT_CONTROLS_CONFIG = 2

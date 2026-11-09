@@ -146,7 +146,7 @@ def test_readme_describes_every_entity() -> None:
     )
     assert 'Select "Rear left fan"' in README
     assert "on another setup it is not created" in README
-    assert "The rear right fan, set on the remote, shows in no register" in README
+    assert "No register for the rear right fan was identified" in README
     assert (
         "Flue gas temperature"
         not in README.split("## What you get")[1].split("\n## ")[0]
