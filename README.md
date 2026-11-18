@@ -17,8 +17,8 @@ board, not on the commercial name of the stove.
 | Board | Status |
 |---|---|
 | AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |
-| HYDRO-RDS | Written from the module's own web page, not tested |
-| ECO-RDS | Written from the module's own web page, not tested |
+| HYDRO-RDS | Written from the module's own web page, not tested on a stove. As on STILO: no status code was read on this board, so the status shows unknown, the thermostat always shows on, turning on, turning the schedule on and storing a program are refused, and turning off is always sent |
+| ECO-RDS | Written from the module's own web page, not tested on a stove. As on HYDRO-RDS: the status shows unknown, the thermostat always shows on, turning on, turning the schedule on and storing a program are refused, and turning off is always sent |
 | KTR-AIR BLDC | Checked by a user on a real stove, firmware 0.51: status and eco stop, on and off, target, power, schedule switch, clock, ambient temperature and front fan. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Storing a program and alarms are not verified on this board. The ducting settings were read on a second stove against the vendor app and the remote; there, the rear left fan set from Home Assistant blew from the left duct |
 | KTR-HYDRO | Checked by a user on a real stove, firmware 0.51: status, ambient and water temperatures, on and off, room and water targets, and clock. Only the code 0 counts as off: final cleaning, eco stop and unknown codes count as on, so turning on is sent only from 0. Turning the schedule on and storing a program stay refused: the schedule has two flags, one set by the remote and one by the page of the module, and which one starts the stove is not known. Manual mode and alarms are not verified on this board. No power level: the board has MIN and MAX instead |
 | STILO | Written from the module's own web page, not tested on a stove. No status code was read on this board yet: the status shows unknown, the thermostat always shows on, and turning on, turning the schedule on and storing a program are refused. Turning off is always sent. The room temperature is not shown until it is read against the display of a stove, and the ducting settings are not shown |
@@ -62,7 +62,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat. Not on KTR-HYDRO |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC, KTR-HYDRO and STILO |
-| Switch "Schedule" | Makes the stove follow or ignore the programs it stores. On KTR-HYDRO and STILO it shows unknown when the schedule table and the status of the module disagree, and turning it on is refused: use the stove or its remote control |
+| Switch "Schedule" | Makes the stove follow or ignore the programs it stores. On KTR-HYDRO, HYDRO-RDS, ECO-RDS and STILO it shows unknown when the schedule table and the status of the module disagree, and turning it on is refused: use the stove or its remote control |
 | Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does. While the switch shows unknown, the calendar shows every enabled program |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
 

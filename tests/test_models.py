@@ -303,17 +303,18 @@ def test_supported_models() -> None:
         assert not SUPPORTED_MODELS[code].has_ducting
 
 
+@pytest.mark.parametrize("model", [11, 12, 14])
 @pytest.mark.parametrize("code", [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 42])
-def test_unread_board_status_means_nothing(code: int) -> None:
-    """No code was read on STILO: each is unknown, on and not igniting."""
-    decoded = state({2: code}, model=14)
+def test_unread_board_status_means_nothing(model: int, code: int) -> None:
+    """No code was read on these boards: each is unknown, on and not igniting."""
+    decoded = state({2: code}, model=model)
 
     assert decoded.status_key == "unknown"
     assert decoded.is_on is True
     # Off is never held back waiting for a flame nobody saw on this board.
     assert decoded.is_igniting is False
     assert decoded.in_alarm is False
-    assert SUPPORTED_MODELS[14].off_verified is False
+    assert SUPPORTED_MODELS[model].off_verified is False
 
 
 @pytest.mark.parametrize(

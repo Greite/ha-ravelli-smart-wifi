@@ -457,12 +457,13 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
     assert bool(response[calendar]["events"]) is (expected != "off")
 
 
+@pytest.mark.parametrize("model", [11, 12, 14])
 @pytest.mark.parametrize("status", [0, 5, 42])
 async def test_unread_board_turn_on_is_refused(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int, status: int
 ) -> None:
-    """No code of STILO is trusted as off: Home Assistant cannot tell."""
-    module = await setup_model(hass, aioclient_mock, 14)
+    """No code of HYDRO-RDS, ECO-RDS or STILO is trusted as off."""
+    module = await setup_model(hass, aioclient_mock, model)
     module.common[2] = status
 
     with pytest.raises(ServiceValidationError) as err:
@@ -472,13 +473,18 @@ async def test_unread_board_turn_on_is_refused(
     assert module.count(PATH_GET, key="022") == 0
 
 
+@pytest.mark.parametrize("model", [11, 12, 14])
 @pytest.mark.parametrize("flame", [0, 1, 255])
 @pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
 async def test_unread_board_turn_off_is_always_sent(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, flame: int
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    model: int,
+    status: int,
+    flame: int,
 ) -> None:
-    """Nobody saw which code is an ignition on STILO: off is never held."""
-    module = await setup_model(hass, aioclient_mock, 14)
+    """Nobody saw which code is an ignition on these boards: off is never held."""
+    module = await setup_model(hass, aioclient_mock, model)
     module.common[2] = status
     module.extra["flame"] = flame
 
@@ -551,7 +557,7 @@ async def test_ktr_hydro_turn_off(
     assert module.count(PATH_GET, key="022", status="1") == 0
 
 
-@pytest.mark.parametrize("model", [6, 14])
+@pytest.mark.parametrize("model", [6, 11, 12, 14])
 async def test_unread_board_schedule_cannot_start_the_stove(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
@@ -613,7 +619,8 @@ async def test_water_thermostat(
     assert exists(hass, "stove")
     assert not exists(hass, "duct_right")
     state = climate(hass, "water")
-    assert state.state == "off"
+    # No status code of this board is known: unknown counts as on.
+    assert state.state == "heat"
     assert state.attributes["temperature"] == 60
     assert state.attributes["current_temperature"] == 45
     assert state.attributes["min_temp"] == 30
@@ -634,11 +641,6 @@ async def test_water_thermostat(
 
     await call(hass, "water", "set_preset_mode", preset_mode="none")
     assert module.categories[2][49] == 65
-
-    await call(hass, "water", "turn_on")
-    assert module.count(PATH_GET, key="022", status="1") == 1
-    assert climate(hass, "water").state == "heat"
-    assert climate(hass, "stove").state == "heat"
 
 
 @pytest.mark.usefixtures("enable_all_entities")

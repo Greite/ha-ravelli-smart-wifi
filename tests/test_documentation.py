@@ -134,10 +134,11 @@ def test_readme_describes_every_entity() -> None:
         "| AIR-RDS | Verified on a real stove, reads and commands, firmware 0.51 |"
         in (README)
     )
-    assert "| HYDRO-RDS | Written from the module's own web page, not tested |" in (
-        README
-    )
-    assert "| ECO-RDS | Written from the module's own web page, not tested |" in README
+    for board in ("HYDRO-RDS", "ECO-RDS"):
+        assert f"| {board} | Written from the module's own web page, not tested" in (
+            README
+        )
+    assert "the thermostat always shows on, turning on" in README
     assert "Only the code 0 counts as off" in README
     assert 'Sensor "Front fan"' in README
     assert (

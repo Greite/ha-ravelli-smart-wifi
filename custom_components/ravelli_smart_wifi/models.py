@@ -257,22 +257,31 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         ktr_ducting=True,
         flame_shows_fire=False,
     ),
+    # Transcribed from the page of the module, never read on a stove. Status
+    # tables are per board: the AIR-RDS one says nothing about these. Each
+    # code is unknown, counts as on and never as an ignition, so off is always
+    # sent; turning on, enabling the schedule and storing a program are
+    # refused.
     11: StoveModel(
         code=11,
         name="HYDRO-RDS",
         categories=(CATEGORY_MAIN, CATEGORY_COMFORT),
         writable=_COMMON_WRITABLE | {REG_WATER_SETPOINT},
-        status_keys=STATUS_KEYS,
-        alarm_codes=RDS_ALARM_CODES,
+        status_keys={},
+        alarm_codes=frozenset(),
         has_water=True,
+        off_codes=frozenset(),
+        schedule_flag_verified=False,
     ),
     12: StoveModel(
         code=12,
         name="ECO-RDS",
         categories=(CATEGORY_MAIN, CATEGORY_COMFORT),
         writable=_COMMON_WRITABLE,
-        status_keys=STATUS_KEYS,
-        alarm_codes=RDS_ALARM_CODES,
+        status_keys={},
+        alarm_codes=frozenset(),
+        off_codes=frozenset(),
+        schedule_flag_verified=False,
     ),
     # Transcribed from the page of the module: the main, power and clock
     # registers of KTR-AIR BLDC, and its own ducting registers (184 to 189),
