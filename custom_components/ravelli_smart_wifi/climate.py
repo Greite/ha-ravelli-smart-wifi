@@ -116,26 +116,31 @@ class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
         raw = self._raw()
         return PRESET_NONE if raw is None else self._presets.get(raw, PRESET_NONE)
 
+    def _checked(self, temperature: float) -> int:
+        """Return a target in whole degrees, refused outside the bounds."""
+        value = round(temperature)
+        if not self.min_temp <= value <= self.max_temp:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="value_out_of_range",
+                translation_placeholders={
+                    "value": str(value),
+                    "minimum": str(self.min_temp),
+                    "maximum": str(self.max_temp),
+                },
+            )
+        return value
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Write a target in whole degrees, then the mode given with it."""
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
         try:
             if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
-                value = round(temperature)
-                if not self.min_temp <= value <= self.max_temp:
-                    raise ServiceValidationError(
-                        translation_domain=DOMAIN,
-                        translation_key="value_out_of_range",
-                        translation_placeholders={
-                            "value": str(value),
-                            "minimum": str(self.min_temp),
-                            "maximum": str(self.max_temp),
-                        },
-                    )
-                await self.coordinator.async_write_register(self._register, value)
+                await self.coordinator.async_write_register(
+                    self._register, self._checked(temperature)
+                )
         finally:
-            # Off is sent even when the target is refused, and after it: a
-            # target turns a duct back on.
+            # Off is sent even when the target is refused.
             if hvac_mode == HVACMode.OFF:
                 await self.async_set_hvac_mode(hvac_mode)
         if hvac_mode == HVACMode.HEAT:
@@ -248,6 +253,16 @@ class RavelliDuctClimate(RavelliSetpointClimate):
     def native_current_temperature(self) -> float | None:
         """Return the temperature of the outlet, None without a reading."""
         return self.coordinator.data.state.raw(self._temperature_register) or None
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        """With off, write off only: a target would turn the outlet on."""
+        if kwargs.get(ATTR_HVAC_MODE) != HVACMode.OFF:
+            await super().async_set_temperature(**kwargs)
+            return
+        await self.async_set_hvac_mode(HVACMode.OFF)
+        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
+            # Restored by the next turn on.
+            self._last_target = self._checked(temperature)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Turn the outlet off, or back on at its last target."""

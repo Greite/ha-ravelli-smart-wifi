@@ -4,7 +4,7 @@ from typing import Any
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant, State
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import pytest
@@ -145,13 +145,41 @@ async def test_ducting_commands(
     await call(hass, "duct_left", "set_hvac_mode", hvac_mode="heat")
     assert fake_module.categories[6][185] == 22
 
-    # A target turns the outlet back on: the off given with it comes last.
+    # Off with a target writes off only; the target waits for the next on.
     await call(hass, "duct_left", "set_temperature", temperature=23, hvac_mode="off")
+    assert fake_module.count(PATH_SET, regId="185", value="23") == 0
     assert fake_module.categories[6][185] == 5
     assert climate(hass, "duct_left").state == "off"
 
-    await call(hass, "duct_left", "set_temperature", temperature=23, hvac_mode="heat")
+    await call(hass, "duct_left", "turn_on")
     assert fake_module.categories[6][185] == 23
+
+    await call(hass, "duct_left", "set_temperature", temperature=24, hvac_mode="heat")
+    assert fake_module.categories[6][185] == 24
+
+
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_ducting_off_with_a_target_never_heats(
+    hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """A refused off leaves the outlet as it was, never turned on by the target."""
+    fake_module.categories[6] = {24: 21, 25: 19, 184: 5, 185: 5}
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    fake_module.write_result = False
+
+    with pytest.raises(HomeAssistantError):
+        await call(
+            hass, "duct_left", "set_temperature", temperature=23, hvac_mode="off"
+        )
+
+    assert fake_module.count(PATH_SET, regId="185", value="23") == 0
+    assert fake_module.categories[6][185] == 5
+
+    # The target is kept only once off succeeded.
+    fake_module.write_result = True
+    await call(hass, "duct_left", "turn_on")
+    assert fake_module.categories[6][185] == 20
 
 
 @pytest.mark.usefixtures("enable_all_entities")
