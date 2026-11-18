@@ -253,6 +253,17 @@ async def test_off_given_with_a_refused_target_is_sent(
     assert fake_module.count(PATH_GET, key="022", status="0") == 1
 
 
+async def test_set_temperature_with_an_unknown_mode_sends_nothing(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Only heat and off exist: any other mode refuses the whole action."""
+    with pytest.raises(ServiceValidationError):
+        await call(hass, "set_temperature", temperature=21, hvac_mode="cool")
+
+    assert fake_module.count(PATH_SET) == 0
+    assert fake_module.count(PATH_GET, key="022") == 0
+
+
 async def test_turn_off_is_refused_during_ignition(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
 ) -> None:

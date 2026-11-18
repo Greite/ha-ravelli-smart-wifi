@@ -183,6 +183,24 @@ async def test_ducting_off_with_a_target_never_heats(
 
 
 @pytest.mark.usefixtures("enable_all_entities")
+async def test_ducting_target_with_an_unknown_mode_writes_nothing(
+    hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Cool is accepted by Home Assistant core: a target would turn the outlet on."""
+    fake_module.categories[6] = {24: 21, 25: 19, 184: 5, 185: 5}
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError):
+        await call(
+            hass, "duct_left", "set_temperature", temperature=23, hvac_mode="cool"
+        )
+
+    assert fake_module.count(PATH_SET) == 0
+    assert climate(hass, "duct_left").state == "off"
+
+
+@pytest.mark.usefixtures("enable_all_entities")
 async def test_turning_on_ducting_that_is_on_writes_nothing(
     hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
 ) -> None:

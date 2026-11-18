@@ -134,6 +134,10 @@ class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Write a target in whole degrees, then the mode given with it."""
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
+        if hvac_mode is not None:
+            # Core checks the mode for set_hvac_mode only: cool must not
+            # write a target, which would turn a duct on.
+            self._valid_mode_or_raise("hvac", hvac_mode, self.hvac_modes)
         try:
             if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
                 await self.coordinator.async_write_register(
