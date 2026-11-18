@@ -370,6 +370,30 @@ async def test_heat_with_a_target_reads_the_stove_again_before_on(
     assert fake_module.count(PATH_GET, key="022") == 0
 
 
+async def test_turn_on_without_the_alarm_register_is_refused(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """No register 3, no proof that no alarm is active: on is not sent."""
+    del fake_module.common[3]
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "turn_on")
+
+    assert err.value.translation_key == "turn_on_alarm_unread"
+    assert fake_module.count(PATH_GET, key="022") == 0
+
+
+async def test_turn_off_without_the_alarm_register_is_sent(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Off is skipped only for a stove proven off and free of alarm."""
+    del fake_module.common[3]
+
+    await call(hass, "turn_off")
+
+    assert fake_module.count(PATH_GET, key="022", status="0") == 1
+
+
 async def test_turn_off_is_refused_during_ignition(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
 ) -> None:

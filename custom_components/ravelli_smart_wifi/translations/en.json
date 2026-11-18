@@ -290,6 +290,9 @@
     "turn_off_during_ignition": {
       "message": "The stove is igniting and the flame is not established. Wait before turning it off."
     },
+    "turn_on_alarm_unread": {
+      "message": "The module did not report the alarm register of the stove, so Home Assistant cannot tell whether an alarm is active. Turn the stove on from the stove itself. Turning it off from Home Assistant still works."
+    },
     "turn_on_in_alarm": {
       "message": "The stove reports an alarm. Acknowledge it on the stove itself, or turn the stove off from Home Assistant, then turn it on."
     },

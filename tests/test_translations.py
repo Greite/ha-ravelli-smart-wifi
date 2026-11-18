@@ -35,6 +35,7 @@ EXCEPTIONS = {
     "schedule_unreadable",
     "temperature_required",
     "turn_off_during_ignition",
+    "turn_on_alarm_unread",
     "turn_on_in_alarm",
     "turn_on_not_verified",
     "unsupported_model",

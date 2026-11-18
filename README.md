@@ -148,9 +148,10 @@ data:
 - The integration refuses to turn the stove off while it is igniting and the
   flame is not established, as the module's own page does. On HYDRO-RDS,
   ECO-RDS and STILO, no code was read as an ignition: off is always sent.
-- The integration refuses to turn the stove on while it reports an alarm.
-  Acknowledge the alarm on the stove itself, or turn the stove off from Home
-  Assistant, then turn it on.
+- The integration refuses to turn the stove on while it reports an alarm, or
+  while the module does not report the alarm register at all. Acknowledge
+  the alarm on the stove itself, or turn the stove off from Home Assistant,
+  then turn it on.
 - A command is never sent twice. When the module does not answer, you get an
   error and nothing is retried.
 - Only the settings listed above are written. There is no action that writes

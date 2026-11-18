@@ -28,6 +28,7 @@ from .const import (
 from .models import (
     CATEGORY_DUCTING,
     CATEGORY_MAIN,
+    REG_ALARM,
     REG_KTR_DUCT_FAN,
     SLOT_COUNT,
     SUPPORTED_MODELS,
@@ -273,6 +274,9 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             state = await self._async_read_main()
             if state.has_alarm:
                 raise _invalid("turn_on_in_alarm")
+            if state.raw(REG_ALARM) is None:
+                # No proof that no alarm is active.
+                raise _invalid("turn_on_alarm_unread")
             return not state.is_on
 
         async def command() -> None:
@@ -289,8 +293,9 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             state = await self._async_read_main()
             if state.is_igniting and state.flame == 0:
                 raise _invalid("turn_off_during_ignition")
-            # With an alarm reported, off is sent: it is the safe way.
-            if state.status_key != "off" or state.has_alarm:
+            # With an alarm reported, or no alarm register read to rule one
+            # out, off is sent: it is the safe way.
+            if state.status_key != "off" or state.raw(REG_ALARM) != 0:
                 await self.client.set_power(False)
             if target is not None:
                 await self.client.set_register(*target)
