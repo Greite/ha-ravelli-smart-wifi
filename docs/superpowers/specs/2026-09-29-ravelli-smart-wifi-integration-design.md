@@ -234,7 +234,7 @@ default" are created disabled in the entity registry.
 | sensor | Ambient temperature | register 0, or 6 on models 6 and 8 | °C, measurement. Half degrees on register 0, whole degrees on register 6; 0 is no value. Always empty on model 14 until its register is read on a stove. |
 | sensor | Water temperature | register 1 | Models 6 and 11 only. °C, measurement; in half degrees on model 6; 0 is no value. |
 | sensor | Extractor speed | register 5 | rpm = raw × 10 + 250, measurement, enabled by default. The formula was checked on model 7 only. |
-| sensor | Front fan | register 187 or 188 of category 6, after register 175 | Model 8 only. Enum `0` to `5` and `auto`; empty for a configuration not read on a stove; attribute `raw_value`. |
+| sensor | Front fan | register 187 of category 6, when register 175 reads 3 | Model 8 only. Enum `0` to `5` and `auto`; empty in any other configuration, 2 included, where 188 is the rear left fan (the select below); attribute `raw_value`. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9 on model 7, or register 3 non-zero | Device class `problem`. |
 | binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6, 8 and 14. |
