@@ -194,8 +194,8 @@ class StoveModel:
     water_divisor: int = 1
     # The ducting registers of KTR-AIR BLDC (175, 187, 188) are read.
     ktr_ducting: bool = False
-    # False when the board reports a flame with no fire: its flame sensor
-    # is disabled by default.
+    # False when the board reports a flame with no fire, or while `flame` was
+    # never read on the board: its flame sensor is disabled by default.
     flame_shows_fire: bool = True
     # False while the flag of key=033 was not seen to match what the stove
     # shows: the switch then shows unknown when `chrono` disagrees with it.

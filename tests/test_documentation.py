@@ -144,6 +144,9 @@ def test_readme_describes_every_entity() -> None:
         )
         assert "the thermostat always shows on, turning on" in row, board
     assert "Only the code 0 counts as off" in README
+    assert "no code was read as an ignition: off is always sent" in " ".join(
+        README.split()
+    )
     assert 'Sensor "Front fan"' in README
     assert (
         "only one setup was read so far, and on the others the sensor stays empty"

@@ -9,6 +9,7 @@ from custom_components.ravelli_smart_wifi.models import (
     SUPPORTED_MODELS,
     InvalidPayloadError,
     RegisterNotWritableError,
+    StoveModel,
     StoveState,
     ValueOutOfRangeError,
     encode_clock,
@@ -315,6 +316,19 @@ def test_unread_board_status_means_nothing(model: int, code: int) -> None:
     assert decoded.is_igniting is False
     assert decoded.in_alarm is False
     assert SUPPORTED_MODELS[model].off_verified is False
+
+
+def test_a_board_must_name_its_off_codes() -> None:
+    """A new board must not inherit the off codes of another."""
+    with pytest.raises(TypeError, match="off_codes"):
+        StoveModel(
+            code=99,
+            name="NEW",
+            categories=(2,),
+            writable=frozenset(),
+            status_keys={},
+            alarm_codes=frozenset(),
+        )
 
 
 @pytest.mark.parametrize(
