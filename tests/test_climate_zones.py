@@ -1,5 +1,6 @@
 """Tests for the ducting and water thermostats."""
 
+import asyncio
 from typing import Any
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL
@@ -198,6 +199,59 @@ async def test_ducting_target_with_an_unknown_mode_writes_nothing(
 
     assert fake_module.count(PATH_SET) == 0
     assert climate(hass, "duct_left").state == "off"
+
+
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_ducting_heat_with_a_target_is_one_write(
+    hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """The target turns the outlet on: no second write from a stale state."""
+    fake_module.categories[6] = {24: 21, 25: 19, 184: 5, 185: 5}
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    fake_module.refused_categories = {6}
+
+    await call(hass, "duct_left", "set_temperature", temperature=24, hvac_mode="heat")
+
+    assert fake_module.count(PATH_SET) == 1
+    assert fake_module.categories[6][185] == 24
+
+
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_ducting_off_given_after_heat_with_a_target_wins(
+    hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """An off asked during a heat with a target leaves the outlet off."""
+    fake_module.categories[6] = {24: 21, 25: 19, 184: 5, 185: 22}
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await call(hass, "duct_left", "turn_off")
+    fake_module.delay = 0.05
+
+    heat = hass.async_create_task(
+        call(hass, "duct_left", "set_temperature", temperature=24, hvac_mode="heat")
+    )
+    await asyncio.sleep(0.01)
+    await call(hass, "duct_left", "turn_off")
+    await heat
+
+    assert fake_module.categories[6][185] == 5
+
+
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_ducting_off_with_a_target_from_the_external_thermostat(
+    hass: HomeAssistant, config_entry: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """The target asked with off is the one the next turn on restores."""
+    fake_module.categories[6] = {24: 21, 25: 19, 184: 5, 185: 6}
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    await call(hass, "duct_left", "set_temperature", temperature=23, hvac_mode="off")
+    assert fake_module.categories[6][185] == 5
+
+    await call(hass, "duct_left", "turn_on")
+    assert fake_module.categories[6][185] == 23
 
 
 @pytest.mark.usefixtures("enable_all_entities")

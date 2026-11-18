@@ -1,5 +1,6 @@
 """Tests for the stove thermostat."""
 
+import asyncio
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
@@ -261,6 +262,92 @@ async def test_set_temperature_with_an_unknown_mode_sends_nothing(
         await call(hass, "set_temperature", temperature=21, hvac_mode="cool")
 
     assert fake_module.count(PATH_SET) == 0
+    assert fake_module.count(PATH_GET, key="022") == 0
+
+
+async def test_off_given_after_heat_with_a_target_wins(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Target and on go under one lock: an off asked meanwhile comes after them."""
+    fake_module.delay = 0.05
+
+    heat = hass.async_create_task(
+        call(hass, "set_temperature", temperature=21, hvac_mode="heat")
+    )
+    await asyncio.sleep(0.01)
+    await call(hass, "turn_off")
+    await heat
+
+    orders = [
+        fields["status"]
+        for path, fields in fake_module.requests
+        if path == PATH_GET and fields.get("key") == "022"
+    ]
+    assert orders == ["1", "0"]
+    assert fake_module.common[2] == 0
+
+
+async def test_off_with_a_target_is_sent_before_the_target(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A slow target write must not delay the off."""
+    fake_module.common[2] = 4
+    await advance(hass, freezer)
+
+    await call(hass, "set_temperature", temperature=21, hvac_mode="off")
+
+    sent = [
+        fields
+        for path, fields in fake_module.requests
+        if fields.get("key") == "022" or path == PATH_SET
+    ]
+    assert sent[0]["status"] == "0"
+    assert sent[1]["regId"] == "50"
+
+
+@pytest.mark.parametrize(
+    ("hvac_mode", "status", "alarm", "flame", "error"),
+    [
+        ("heat", 8, 0, 0, "turn_on_in_alarm"),
+        ("heat", 0, 5, 0, "turn_on_in_alarm"),
+        ("off", 1, 0, 0, "turn_off_during_ignition"),
+    ],
+)
+async def test_refused_mode_writes_no_target(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    hvac_mode: str,
+    status: int,
+    alarm: int,
+    flame: int,
+    error: str,
+) -> None:
+    """The stove is read before the target is written."""
+    fake_module.common[2] = status
+    fake_module.common[3] = alarm
+    fake_module.extra["flame"] = flame
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "set_temperature", temperature=21, hvac_mode=hvac_mode)
+
+    assert err.value.translation_key == error
+    assert fake_module.count(PATH_SET) == 0
+    assert fake_module.count(PATH_GET, key="022") == 0
+
+
+async def test_heat_with_a_refused_target_is_not_sent(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """The stove is not started at a target it did not take."""
+    fake_module.raw_answers[PATH_SET] = '{"result":false}'
+
+    with pytest.raises(HomeAssistantError):
+        await call(hass, "set_temperature", temperature=21, hvac_mode="heat")
+
     assert fake_module.count(PATH_GET, key="022") == 0
 
 

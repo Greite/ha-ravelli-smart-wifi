@@ -12,6 +12,7 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
+from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -132,23 +133,29 @@ class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
         return value
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Write a target in whole degrees, then the mode given with it."""
+        """Write a target in whole degrees, with the mode given with it."""
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
-        if hvac_mode is not None:
+        if hvac_mode is not None and hvac_mode not in self.hvac_modes:
             # Core checks the mode for set_hvac_mode only: cool must not
             # write a target, which would turn a duct on.
-            self._valid_mode_or_raise("hvac", hvac_mode, self.hvac_modes)
-        try:
-            if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
-                await self.coordinator.async_write_register(
-                    self._register, self._checked(temperature)
-                )
-        finally:
-            # Off is sent even when the target is refused.
-            if hvac_mode == HVACMode.OFF:
-                await self.async_set_hvac_mode(hvac_mode)
-        if hvac_mode == HVACMode.HEAT:
-            await self.async_set_hvac_mode(hvac_mode)
+            raise ServiceValidationError(
+                translation_domain=CLIMATE_DOMAIN,
+                translation_key="not_valid_hvac_mode",
+                translation_placeholders={
+                    "mode": hvac_mode,
+                    "modes": ", ".join(self.hvac_modes),
+                },
+            )
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        await self._async_write_target(
+            None if temperature is None else self._checked(temperature), hvac_mode
+        )
+
+    async def _async_write_target(
+        self, value: int | None, hvac_mode: HVACMode | None
+    ) -> None:
+        """Write a checked target and the mode given with it."""
+        raise NotImplementedError
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Write the special value of a preset, or the last target."""
@@ -172,6 +179,19 @@ class RavelliPowerClimate(RavelliSetpointClimate):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Turn the stove on or off."""
         await self.coordinator.async_set_power(hvac_mode == HVACMode.HEAT)
+
+    async def _async_write_target(
+        self, value: int | None, hvac_mode: HVACMode | None
+    ) -> None:
+        """Send target and mode as one command: nothing comes in between."""
+        if hvac_mode is None:
+            if value is not None:
+                await self.coordinator.async_write_register(self._register, value)
+            return
+        await self.coordinator.async_set_power(
+            hvac_mode == HVACMode.HEAT,
+            None if value is None else (self._register, value),
+        )
 
     async def async_turn_on(self) -> None:
         """Turn the stove on."""
@@ -258,15 +278,20 @@ class RavelliDuctClimate(RavelliSetpointClimate):
         """Return the temperature of the outlet, None without a reading."""
         return self.coordinator.data.state.raw(self._temperature_register) or None
 
-    async def async_set_temperature(self, **kwargs: Any) -> None:
+    async def _async_write_target(
+        self, value: int | None, hvac_mode: HVACMode | None
+    ) -> None:
         """With off, write off only: a target would turn the outlet on."""
-        if kwargs.get(ATTR_HVAC_MODE) != HVACMode.OFF:
-            await super().async_set_temperature(**kwargs)
-            return
-        await self.async_set_hvac_mode(HVACMode.OFF)
-        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
-            # Restored by the next turn on.
-            self._last_target = self._checked(temperature)
+        if hvac_mode == HVACMode.OFF:
+            await self.async_set_hvac_mode(HVACMode.OFF)
+            if value is not None:
+                # Restored by the next turn on.
+                self._last_target = value
+        elif value is not None:
+            # The target alone turns the outlet on: no second write.
+            await self.coordinator.async_write_register(self._register, value)
+        elif hvac_mode == HVACMode.HEAT:
+            await self.async_set_hvac_mode(HVACMode.HEAT)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Turn the outlet off, or back on at its last target."""

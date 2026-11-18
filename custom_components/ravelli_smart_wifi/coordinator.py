@@ -219,8 +219,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         self._fast_steps = list(FAST_REFRESH_STEPS)
         await self.async_refresh()
 
-    async def async_write_register(self, register: int, value: int) -> None:
-        """Write one register of the model table."""
+    def _validate(self, register: int, value: int) -> None:
+        """Refuse a register outside the model table or a value out of bounds."""
         try:
             validate_write(self.model, register, value)
         except RegisterNotWritableError as err:
@@ -232,6 +232,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 minimum=str(err.minimum),
                 maximum=str(err.maximum),
             ) from err
+
+    async def async_write_register(self, register: int, value: int) -> None:
+        """Write one register of the model table."""
+        self._validate(register, value)
 
         async def command() -> None:
             if register == REG_KTR_DUCT_FAN:
@@ -248,12 +252,21 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
         await self._async_command(command)
 
-    async def async_set_power(self, on: bool) -> None:
-        """Turn the stove on or off, if its current state allows it."""
+    async def async_set_power(
+        self, on: bool, target: tuple[int, int] | None = None
+    ) -> None:
+        """Turn the stove on or off, if its current state allows it.
+
+        A target (register, value) given with it is written under the same
+        lock, after off and before on: no other order can come in between,
+        and a refused one writes nothing.
+        """
         if on and not self.model.off_verified:
             # No status code of this board was read as off: Home Assistant
             # cannot tell whether it is off. Off is always sent.
             raise _invalid("turn_on_not_verified")
+        if target is not None:
+            self._validate(*target)
 
         async def command() -> None:
             # The polled state can be half a minute old: read it again.
@@ -265,15 +278,18 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             if on:
                 if state.has_alarm:
                     raise _invalid("turn_on_in_alarm")
-                if state.is_on:
-                    return
+                send = not state.is_on
             else:
                 if state.is_igniting and state.flame == 0:
                     raise _invalid("turn_off_during_ignition")
                 # With an alarm reported, off is sent: it is the safe way.
-                if state.status_key == "off" and not state.has_alarm:
-                    return
-            await self.client.set_power(on)
+                send = state.status_key != "off" or state.has_alarm
+                if send:
+                    await self.client.set_power(False)
+            if target is not None:
+                await self.client.set_register(*target)
+            if on and send:
+                await self.client.set_power(True)
 
         await self._async_command(command)
 
