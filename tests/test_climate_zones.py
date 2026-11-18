@@ -145,6 +145,14 @@ async def test_ducting_commands(
     await call(hass, "duct_left", "set_hvac_mode", hvac_mode="heat")
     assert fake_module.categories[6][185] == 22
 
+    # A target turns the outlet back on: the off given with it comes last.
+    await call(hass, "duct_left", "set_temperature", temperature=23, hvac_mode="off")
+    assert fake_module.categories[6][185] == 5
+    assert climate(hass, "duct_left").state == "off"
+
+    await call(hass, "duct_left", "set_temperature", temperature=23, hvac_mode="heat")
+    assert fake_module.categories[6][185] == 23
+
 
 @pytest.mark.usefixtures("enable_all_entities")
 async def test_turning_on_ducting_that_is_on_writes_nothing(

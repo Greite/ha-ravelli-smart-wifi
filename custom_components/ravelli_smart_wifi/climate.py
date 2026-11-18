@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
     PRESET_NONE,
     ClimateEntity,
     ClimateEntityFeature,
@@ -116,21 +117,29 @@ class RavelliSetpointClimate(RavelliEntity, ClimateEntity):
         return PRESET_NONE if raw is None else self._presets.get(raw, PRESET_NONE)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Write a target in whole degrees."""
-        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
-            return
-        value = round(temperature)
-        if not self.min_temp <= value <= self.max_temp:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="value_out_of_range",
-                translation_placeholders={
-                    "value": str(value),
-                    "minimum": str(self.min_temp),
-                    "maximum": str(self.max_temp),
-                },
-            )
-        await self.coordinator.async_write_register(self._register, value)
+        """Write a target in whole degrees, then the mode given with it."""
+        hvac_mode = kwargs.get(ATTR_HVAC_MODE)
+        try:
+            if (temperature := kwargs.get(ATTR_TEMPERATURE)) is not None:
+                value = round(temperature)
+                if not self.min_temp <= value <= self.max_temp:
+                    raise ServiceValidationError(
+                        translation_domain=DOMAIN,
+                        translation_key="value_out_of_range",
+                        translation_placeholders={
+                            "value": str(value),
+                            "minimum": str(self.min_temp),
+                            "maximum": str(self.max_temp),
+                        },
+                    )
+                await self.coordinator.async_write_register(self._register, value)
+        finally:
+            # Off is sent even when the target is refused, and after it: a
+            # target turns a duct back on.
+            if hvac_mode == HVACMode.OFF:
+                await self.async_set_hvac_mode(hvac_mode)
+        if hvac_mode == HVACMode.HEAT:
+            await self.async_set_hvac_mode(hvac_mode)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Write the special value of a preset, or the last target."""

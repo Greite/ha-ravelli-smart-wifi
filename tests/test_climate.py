@@ -4,7 +4,7 @@ from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant, State
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -214,6 +214,43 @@ async def test_turn_off(
 
     assert fake_module.count(PATH_GET, key="022", status="0") == 1
     assert stove(hass).state == "off"
+
+
+@pytest.mark.parametrize(("hvac_mode", "status"), [("off", "0"), ("heat", "1")])
+async def test_set_temperature_with_a_mode(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+    hvac_mode: str,
+    status: str,
+) -> None:
+    """The mode given with a target is sent, never dropped."""
+    fake_module.common[2] = 4 if hvac_mode == "off" else 0
+    await advance(hass, freezer)
+
+    await call(hass, "set_temperature", temperature=21, hvac_mode=hvac_mode)
+
+    assert fake_module.categories[2][50] == 21
+    assert fake_module.count(PATH_GET, key="022", status=status) == 1
+    assert stove(hass).state == hvac_mode
+
+
+async def test_off_given_with_a_refused_target_is_sent(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """The module refusing the target does not keep the stove running."""
+    fake_module.common[2] = 4
+    await advance(hass, freezer)
+    fake_module.raw_answers[PATH_SET] = '{"result":false}'
+
+    with pytest.raises(HomeAssistantError):
+        await call(hass, "set_temperature", temperature=21, hvac_mode="off")
+
+    assert fake_module.count(PATH_GET, key="022", status="0") == 1
 
 
 async def test_turn_off_is_refused_during_ignition(
