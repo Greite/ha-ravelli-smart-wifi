@@ -15,7 +15,7 @@ uv run pytest tests/test_coordinator.py -k turn_off            # one area
 - `custom_components/ravelli_smart_wifi/api.py` — `WinetClient`, the HTTP client. `models.py` — register table of each board, status table, write bounds, schedule encoding. Neither imports Home Assistant.
 - `coordinator.py` — the one `DataUpdateCoordinator`: polling, the lock, every command and its safety rules (`async_set_power`, schedule writes with read-back).
 - `config_flow.py` — network search, manual entry, DHCP discovery, reconfigure, options.
-- Platforms: `climate.py`, `sensor.py`, `binary_sensor.py`, `number.py`, `switch.py`, `button.py`, `calendar.py`. `services.py` holds the two schedule actions. `diagnostics.py` is an allow-list.
+- Platforms: `climate.py`, `sensor.py`, `binary_sensor.py`, `number.py`, `select.py`, `switch.py`, `button.py`, `calendar.py`. `services.py` holds the two schedule actions. `diagnostics.py` is an allow-list.
 - `brand/` — the images Home Assistant shows for the integration.
 - `tests/fake_module.py` — simulator of the module at the HTTP level. `tests/fixtures/` — answers of a real module, anonymized.
 - `docs/hardware-verification.md` — what was checked on a real stove, per board and firmware.

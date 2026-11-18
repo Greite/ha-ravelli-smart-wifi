@@ -55,7 +55,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC and KTR-HYDRO, in whole degrees, and empty while the stove reports none; on KTR-AIR BLDC it can lag the remote control by several minutes. Always empty on STILO for now |
 | Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only. Which register holds it depends on how the installer set up the ducting of the stove: only one setup was read so far, and on the others the sensor stays empty |
 | Select "Rear left fan" | The rear left fan of the ducting, seen from the front of the stove: off, P1 to P5 or auto (the vendor app calls it "Vent. front"). KTR-AIR BLDC only, and only on the ducting setup it was read on; on another setup it is not created. No register for the rear right fan was identified in the readings so far: it is not shown. Direction and split, which the vendor app also shows, are left out: on the stove read, they moved no air whatever was set |
-| Sensor "Extractor speed" | In revolutions per minute |
+| Sensor "Extractor speed" | In revolutions per minute. The conversion was checked on AIR-RDS only |
 | Sensor "Water temperature" | In °C. HYDRO-RDS and KTR-HYDRO only |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
 | Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: both stoves reported a flame in every phase, eco stop and off included. It is disabled by default on both, and on STILO, when the device is first added |
