@@ -339,10 +339,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
     async def async_sync_clock(self) -> None:
         """Set the stove clock to the local time of Home Assistant."""
-        writes = encode_clock(dt_util.now())
 
         async def command() -> None:
-            for register, value in writes:
+            # Read once the lock is held: a diagnostics download can delay it.
+            for register, value in encode_clock(dt_util.now()):
                 validate_write(self.model, register, value)
                 await self.client.set_register(register, value)
 
