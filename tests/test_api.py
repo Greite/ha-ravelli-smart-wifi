@@ -4,6 +4,8 @@ import logging
 from typing import Any
 
 import aiohttp
+from aiohttp import web
+from aiohttp.test_utils import TestServer
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
@@ -280,3 +282,30 @@ def test_status_signature() -> None:
     assert is_winet_status({"fwVer": "0.51"}) is False
     assert is_winet_status({"board": [7, 0, 0, 0]}) is False
     assert is_winet_status({}) is False
+
+
+@pytest.mark.usefixtures("socket_enabled")
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+async def test_a_redirected_command_is_never_sent_again(status: int) -> None:
+    """A redirect would send the command a second time, to another place."""
+    followed: list[str] = []
+
+    class Redirect(web.HTTPException):
+        status_code = status
+
+    async def answer(request: web.Request) -> web.Response:
+        raise Redirect(headers={"Location": "/elsewhere"})
+
+    async def elsewhere(request: web.Request) -> web.Response:
+        followed.append(await request.text())
+        return web.json_response({"result": True})
+
+    app = web.Application()
+    app.router.add_post(PATH_SET, answer)
+    app.router.add_route("*", "/elsewhere", elsewhere)
+    async with TestServer(app) as server, aiohttp.ClientSession() as session:
+        client = WinetClient(session, f"{server.host}:{server.port}")
+        with pytest.raises(WinetResponseError):
+            await client.set_register(50, 21)
+
+    assert followed == []

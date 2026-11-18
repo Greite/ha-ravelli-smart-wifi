@@ -323,7 +323,9 @@ Safety rules:
 - Igniting means the codes of the board's ignition keys: 1, 2 and 3 on model
   7. Boards without a status table (11, 12, 14) have none, so off is never
   held there, and turning on is refused since no code is trusted as off.
-- Writes are never retried automatically.
+- Writes are never retried automatically, and no request follows a redirect:
+  a 3xx answer is an error, since following it would send the command again,
+  possibly to another host.
 - Schedule writes read the table, change it, write it, read it back and
   raise if the result differs.
 - The README states that the module API is unauthenticated on the local
@@ -485,5 +487,6 @@ Not verified:
 | Mode outside `heat` and `off` given with `set_temperature` | Refused before any write, with the `not_valid_hvac_mode` error of the climate domain, checked by the integration itself | Full-project review, 2026-11-18: core checks the mode against `hvac_modes` for `set_hvac_mode` only, so `cool` with a target wrote the target and turned a duct that was off on. The core helper that does the check is private: a change to it must not open that path again |
 | Target and mode in one command | On the stove and water thermostats, target and mode go through `async_set_power` under one lock: the stove is read and the refusals applied before anything is written, off goes before the target, on after it, and the stove is read again after the target: an alarm, another model or a stove already on stops the on. On a duct, heat with a target is the target write alone | Separate review, 2026-11-18: two lock acquisitions let a `turn_off` asked during the target write pass before the late on, so the stove ignited after the last order was off; on a duct the outlet ended at a target neither order asked for. The lock does not hold the stove: without the second read, an alarm raised during the write was followed by on |
 | Alarm register missing from the answer | Turning on is refused (`turn_on_alarm_unread`) and off is sent even from status off: only register 3 read as 0 rules an alarm out. The alarm binary sensor is unchanged | Separate review, 2026-11-18: a category read without register 3 was accepted and `has_alarm` read it as no alarm, so on was sent without proof and off was skipped on a stove showing off |
+| Redirects | `_post` sends every request with `allow_redirects=False`; a 3xx answer raises `WinetResponseError` | Review, 2026-11-18: aiohttp follows redirects by default and sends a POST again with its body on 307 and 308, to any host, so one command could be sent twice; checked against a local HTTP server for 301, 302, 303, 307 and 308 |
 | DHCP discovery of an entry without a MAC address | Aborts as `already_configured` when an entry has the same address, before probing the module | Full-project review, 2026-11-18: such an entry has no unique id, so the discovery card came back at each DHCP event |
 | Disabled start and stop times | Written back with the hour and quarter they were read with (`disabled_times`), instead of 0 | A program made on the page of the module must come back unchanged after a write from Home Assistant |

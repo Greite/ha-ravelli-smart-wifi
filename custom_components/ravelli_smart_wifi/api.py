@@ -69,6 +69,9 @@ class WinetClient:
                 data=body,
                 headers=_HEADERS,
                 timeout=self._timeout,
+                # A followed redirect sends the command a second time,
+                # possibly to another host: the 3xx status is an error below.
+                allow_redirects=False,
             ) as response:
                 status = response.status
                 raw = await response.read()
