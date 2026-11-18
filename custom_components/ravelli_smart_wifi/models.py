@@ -314,6 +314,15 @@ def _is_int(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def read_model(payload: dict[str, Any]) -> int | None:
+    """Return the model code of one answer, None when the answer has none."""
+    model = payload.get("model")
+    if model is not None and not _is_int(model):
+        # Never echoed: a malformed value is no board identity.
+        raise InvalidPayloadError("the model code is not an integer")
+    return model
+
+
 def parse_registers(payload: Any) -> dict[int, int]:
     """Turn the answer to a category read into a register mapping."""
     if not isinstance(payload, dict):

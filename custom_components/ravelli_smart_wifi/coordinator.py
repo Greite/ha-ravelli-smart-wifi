@@ -41,6 +41,7 @@ from .models import (
     StoveState,
     ValueOutOfRangeError,
     encode_clock,
+    read_model,
     validate_write,
 )
 
@@ -136,7 +137,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                     payload = await self.client.get_registers(category)
                     # Noted at each answer: a later category that fails
                     # must not hide a board change from the commands.
-                    model = payload.get("model")
+                    model = read_model(payload)
                     if model is not None and model != self.model.code:
                         self._reported_model = model
                         # Nothing may be read or written with the wrong table.
@@ -252,10 +253,9 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             if register == REG_KTR_DUCT_FAN:
                 # Its meaning depends on register 175: read it again under
                 # the lock, as the last poll may be older than the command.
-                state = StoveState.from_payloads(
-                    [await self.client.get_registers(CATEGORY_DUCTING)]
-                )
-                self._check_model(state.model)
+                payload = await self.client.get_registers(CATEGORY_DUCTING)
+                self._check_model(read_model(payload))
+                state = StoveState.from_payloads([payload])
                 if not state.has_ducting_controls:
                     raise _invalid("ducting_setup_not_verified")
             await self.client.set_register(register, value)
@@ -316,10 +316,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
 
     async def _async_read_main(self) -> StoveState:
         """Read the stove under the lock: the poll can be half a minute old."""
-        state = StoveState.from_payloads(
-            [await self.client.get_registers(CATEGORY_MAIN)]
-        )
-        self._check_model(state.model)
+        payload = await self.client.get_registers(CATEGORY_MAIN)
+        # The model first: another board may not hold this board's registers.
+        self._check_model(read_model(payload))
+        state = StoveState.from_payloads([payload])
         return state
 
     def _check_schedule_start(self) -> None:

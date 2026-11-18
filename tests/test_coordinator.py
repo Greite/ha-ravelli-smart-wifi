@@ -718,6 +718,40 @@ async def test_a_failed_poll_does_not_clear_a_model_mismatch(
     assert fake_module.count(PATH_GET, key="032") == 0
 
 
+@pytest.mark.parametrize("model", ["7", [7, 0], 7.0, True])
+async def test_a_malformed_model_is_no_board_change(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    caplog: pytest.LogCaptureFixture,
+    model: object,
+) -> None:
+    """A model that is not an integer fails the poll, latches nothing, logs nothing."""
+    fake_module.model = model
+
+    await coordinator.async_refresh()
+
+    assert not coordinator.last_update_success
+    shown = " ".join(r.getMessage() for r in caplog.records if r.levelno >= 30)
+    assert "Reconfigure" not in shown
+    assert "[7, 0]" not in shown
+    fake_module.model = 7
+    await coordinator.async_write_register(50, 23)
+    assert fake_module.count(PATH_SET, regId="50") == 1
+
+
+async def test_a_command_read_latches_the_model_before_the_registers(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """Another board without a status register is still another board."""
+    fake_module.model = 11
+    del fake_module.common[2]
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_power(False)
+
+    assert err.value.translation_key == "model_mismatch"
+
+
 async def test_turn_on_checks_the_model_read_at_command_time(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:
