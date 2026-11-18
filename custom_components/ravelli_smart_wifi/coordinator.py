@@ -258,9 +258,12 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
     ) -> None:
         """Turn the stove on or off, if its current state allows it.
 
-        A target (register, value) given with it is written under the same
-        lock, after off and before on: no other order can come in between,
-        and a refused one writes nothing.
+        A thermostat set point (register, value) given with it is written
+        under the same lock, after off and before on: no other order can come
+        in between. A mode refused at the first read writes nothing; an on
+        refused at the read after the target leaves the target written. The
+        ducting check of register 188 lives in async_write_register only:
+        never pass that register here.
         """
         if on and not self.model.off_verified:
             # No status code of this board was read as off: Home Assistant

@@ -291,6 +291,17 @@ async def test_turn_on_when_already_on_sends_nothing(
     assert coordinator.data.state.status_key == "working"
 
 
+async def test_set_power_with_a_target_out_of_range_sends_nothing(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """The target is checked before off is sent."""
+    with pytest.raises(ServiceValidationError) as err:
+        await coordinator.async_set_power(False, (50, 42))
+
+    assert err.value.translation_key == "value_out_of_range"
+    assert fake_module.requests == []
+
+
 async def test_turn_on_is_refused_in_alarm_raised_since_the_last_poll(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:

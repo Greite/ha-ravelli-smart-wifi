@@ -615,6 +615,71 @@ async def test_unread_board_turn_off_is_always_sent(
     assert module.count(PATH_GET, key="022", status="0") == 1
 
 
+TARGETS = {"stove": ("50", 21), "water": ("49", 55)}
+
+
+def commands(module: FakeModule) -> list[dict[str, str]]:
+    """List the power commands and the register writes, in order."""
+    return [
+        fields
+        for path, fields in module.requests
+        if fields.get("key") == "022" or path == PATH_SET
+    ]
+
+
+@pytest.mark.parametrize(("model", "key"), UNREAD_THERMOSTATS)
+async def test_unread_board_heat_with_a_target_writes_nothing(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int, key: str
+) -> None:
+    """On is refused before the target is written."""
+    module = await setup_model(hass, aioclient_mock, model)
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(
+            hass, key, "set_temperature", temperature=TARGETS[key][1], hvac_mode="heat"
+        )
+
+    assert err.value.translation_key == "turn_on_not_verified"
+    assert commands(module) == []
+
+
+@pytest.mark.parametrize(
+    ("model", "key"), [(6, "water"), (7, "stove"), *UNREAD_THERMOSTATS]
+)
+@pytest.mark.parametrize(("status", "alarm"), [(4, 0), (0, 5)])
+async def test_off_with_a_target_goes_first_on_every_thermostat(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    model: int,
+    key: str,
+    status: int,
+    alarm: int,
+) -> None:
+    """Off is sent before the target, also for a stove stopped in alarm."""
+    module = await setup_model(hass, aioclient_mock, model)
+    module.common.update({2: status, 3: alarm})
+    register, target = TARGETS[key]
+
+    await call(hass, key, "set_temperature", temperature=target, hvac_mode="off")
+
+    sent = commands(module)
+    assert sent[0]["status"] == "0"
+    assert sent[1]["regId"] == register
+
+
+async def test_water_heat_with_a_target_turns_the_stove_on(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The water thermostat sends the mode given with its target."""
+    module = await setup_model(hass, aioclient_mock, 6)
+
+    await call(hass, "water", "set_temperature", temperature=55, hvac_mode="heat")
+
+    sent = commands(module)
+    assert sent[0]["regId"] == "49"
+    assert sent[1]["status"] == "1"
+
+
 def set_alarm(module: FakeModule, alarm: int | None) -> None:
     """Set register 3, or leave it out of the answer."""
     if alarm is None:
