@@ -231,7 +231,9 @@ async def test_malformed_schedule_rows_are_redacted_or_described(
         assert secret not in text, secret
 
 
-@pytest.mark.parametrize("programs", [None, 3, "secret-d"])
+@pytest.mark.parametrize(
+    "programs", [None, 3, 2.5, True, "secret-d", {"secret-e": ["secret-f"]}]
+)
 async def test_schedule_without_a_list_of_programs_is_described(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
@@ -244,3 +246,27 @@ async def test_schedule_without_a_list_of_programs_is_described(
     result = await async_get_config_entry_diagnostics(hass, init_integration)
 
     assert result["schedule"]["programs"] == type(programs).__name__
+    assert "secret" not in json.dumps(result, default=str)
+
+
+async def test_schedule_answer_without_programs_is_not_an_empty_table(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """Support must tell a missing key from six free slots."""
+    fake_module.raw_answers[PATH_GET] = '{"key": 33, "enabled": true}'
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    assert result["schedule"]["programs"] == "NoneType"
+
+
+async def test_schedule_flag_that_is_not_a_number_is_redacted(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_module: FakeModule
+) -> None:
+    """The flag is kept for support only while it cannot hold typed text."""
+    fake_module.schedule_enabled = "secret-g"
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    assert result["schedule"]["enabled"] == REDACTED
+    assert result["schedule"]["key"] == 33

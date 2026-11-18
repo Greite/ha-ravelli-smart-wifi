@@ -68,13 +68,18 @@ def _redact_schedule(schedule: dict[str, Any] | str) -> dict[str, Any]:
     """Hide the program names, free text typed by the owner, and any non-number."""
     if isinstance(schedule, str):
         return {"error": schedule}
-    rows = schedule.get("programs", [])
+    rows = schedule.get("programs")
     programs = (
         [_redact_program(program) for program in rows]
         if isinstance(rows, list)
         else type(rows).__name__
     )
-    return {**_keep(schedule, KEEP_SCHEDULE), "programs": programs}
+    # The key and the flag are numbers: any other value could be typed text.
+    kept = {
+        key: value if isinstance(value, int) else REDACTED
+        for key, value in _keep(schedule, KEEP_SCHEDULE).items()
+    }
+    return {**kept, "programs": programs}
 
 
 async def async_get_config_entry_diagnostics(
