@@ -314,6 +314,7 @@ async def test_off_with_a_target_is_sent_before_the_target(
     [
         ("heat", 8, 0, 0, "turn_on_in_alarm"),
         ("heat", 0, 5, 0, "turn_on_in_alarm"),
+        ("heat", 0, None, 0, "turn_on_alarm_unread"),
         ("off", 1, 0, 0, "turn_off_during_ignition"),
     ],
 )
@@ -323,13 +324,16 @@ async def test_refused_mode_writes_no_target(
     fake_module: FakeModule,
     hvac_mode: str,
     status: int,
-    alarm: int,
+    alarm: int | None,
     flame: int,
     error: str,
 ) -> None:
     """The stove is read before the target is written."""
     fake_module.common[2] = status
-    fake_module.common[3] = alarm
+    if alarm is None:
+        del fake_module.common[3]
+    else:
+        fake_module.common[3] = alarm
     fake_module.extra["flame"] = flame
 
     with pytest.raises(ServiceValidationError) as err:

@@ -615,7 +615,15 @@ async def test_unread_board_turn_off_is_always_sent(
     assert module.count(PATH_GET, key="022", status="0") == 1
 
 
-@pytest.mark.parametrize("alarm", [0, 255])
+def set_alarm(module: FakeModule, alarm: int | None) -> None:
+    """Set register 3, or leave it out of the answer."""
+    if alarm is None:
+        del module.common[3]
+    else:
+        module.common[3] = alarm
+
+
+@pytest.mark.parametrize("alarm", [0, 255, None])
 @pytest.mark.parametrize("flame", [0, 1, 255])
 @pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
 @pytest.mark.parametrize("key", ["stove", "water"])
@@ -625,27 +633,29 @@ async def test_ktr_hydro_turn_on(
     key: str,
     status: int,
     flame: int,
-    alarm: int,
+    alarm: int | None,
 ) -> None:
-    """On is sent from 0 without an alarm only; refused with an alarm."""
+    """On is sent from 0 with register 3 read as 0 only."""
     module = await setup_model(hass, aioclient_mock, 6)
     module.common[2] = status
-    module.common[3] = alarm
+    set_alarm(module, alarm)
     module.extra["flame"] = flame
 
-    if alarm:
+    if alarm != 0:
         with pytest.raises(ServiceValidationError) as err:
             await call(hass, key, "turn_on")
-        assert err.value.translation_key == "turn_on_in_alarm"
+        assert err.value.translation_key == (
+            "turn_on_in_alarm" if alarm else "turn_on_alarm_unread"
+        )
     else:
         await call(hass, key, "turn_on")
 
-    sent = 1 if status == 0 and not alarm else 0
+    sent = 1 if status == 0 and alarm == 0 else 0
     assert module.count(PATH_GET, key="022", status="1") == sent
     assert module.count(PATH_GET, key="022", status="0") == 0
 
 
-@pytest.mark.parametrize("alarm", [0, 255])
+@pytest.mark.parametrize("alarm", [0, 255, None])
 @pytest.mark.parametrize("flame", [0, 1, 255])
 @pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42])
 async def test_ktr_hydro_turn_off(
@@ -653,7 +663,7 @@ async def test_ktr_hydro_turn_off(
     aioclient_mock: AiohttpClientMocker,
     status: int,
     flame: int,
-    alarm: int,
+    alarm: int | None,
 ) -> None:
     """Off waits for the flame in 1 and 2 only, alarm or not; else it is sent.
 
@@ -662,7 +672,7 @@ async def test_ktr_hydro_turn_off(
     """
     module = await setup_model(hass, aioclient_mock, 6)
     module.common[2] = status
-    module.common[3] = alarm
+    set_alarm(module, alarm)
     module.extra["flame"] = flame
 
     if status in (1, 2) and flame == 0:
@@ -672,8 +682,8 @@ async def test_ktr_hydro_turn_off(
         sent = 0
     else:
         await call(hass, "stove", "turn_off")
-        # Off and no alarm: nothing to stop.
-        sent = 0 if status == 0 and not alarm else 1
+        # Off with register 3 read as 0: nothing to stop.
+        sent = 0 if status == 0 and alarm == 0 else 1
 
     assert module.count(PATH_GET, key="022", status="0") == sent
     assert module.count(PATH_GET, key="022", status="1") == 0

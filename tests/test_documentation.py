@@ -147,6 +147,10 @@ def test_readme_describes_every_entity() -> None:
     assert "no code was read as an ignition: off is always sent" in " ".join(
         README.split()
     )
+    assert (
+        "does not report the alarm register at all: turn the stove on from the"
+        " stove itself" in " ".join(README.split())
+    )
     assert 'Sensor "Front fan"' in README
     assert (
         "only one setup was read so far, and on the others the sensor stays empty"

@@ -95,7 +95,7 @@ unverified.
 A category read returns:
 
 ```json
-{"params": [[0, 44], [2, 0], [50, 22], [51, 1]],
+{"params": [[0, 44], [2, 0], [3, 0], [50, 22], [51, 1]],
  "cat": 2, "model": 7, "signal": 3, "flame": 255,
  "chrono": 0, "alr": "", "name": "NO NAME", "authLevel": 0}
 ```
