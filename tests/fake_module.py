@@ -82,6 +82,8 @@ class FakeModule:
         self.write_result = True
         self.refused_categories: set[int] = set()
         self.ignore_schedule_writes = False
+        # What the stove changes by itself while a register is written.
+        self.changes_on_write: dict[int, int] = {}
         self.delay = 0.0
         self.max_concurrent = 0
         self._active = 0
@@ -173,6 +175,7 @@ class FakeModule:
         for registers in self.categories.values():
             if register in registers:
                 registers[register] = int(fields["value"])
+        self.common.update(self.changes_on_write)
         return {"result": True}
 
     def _category(self, category: int) -> dict[str, Any]:

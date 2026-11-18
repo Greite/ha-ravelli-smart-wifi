@@ -1,6 +1,7 @@
 """Tests for the stove thermostat."""
 
 import asyncio
+from contextlib import nullcontext
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
@@ -348,6 +349,24 @@ async def test_heat_with_a_refused_target_is_not_sent(
     with pytest.raises(HomeAssistantError):
         await call(hass, "set_temperature", temperature=21, hvac_mode="heat")
 
+    assert fake_module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize(("register", "value"), [(3, 255), (2, 8), (2, 4)])
+async def test_heat_with_a_target_reads_the_stove_again_before_on(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    register: int,
+    value: int,
+) -> None:
+    """An alarm, or a start, during the target write: on is not sent."""
+    fake_module.changes_on_write = {register: value}
+
+    with pytest.raises(ServiceValidationError) if value != 4 else nullcontext():
+        await call(hass, "set_temperature", temperature=21, hvac_mode="heat")
+
+    assert fake_module.categories[2][50] == 21
     assert fake_module.count(PATH_GET, key="022") == 0
 
 

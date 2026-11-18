@@ -268,30 +268,43 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         if target is not None:
             self._validate(*target)
 
+        async def read_for_on() -> bool:
+            """Read the stove: whether on must be sent, refused in alarm."""
+            state = await self._async_read_main()
+            if state.has_alarm:
+                raise _invalid("turn_on_in_alarm")
+            return not state.is_on
+
         async def command() -> None:
-            # The polled state can be half a minute old: read it again.
-            state = StoveState.from_payloads(
-                [await self.client.get_registers(CATEGORY_MAIN)]
-            )
-            self._reported_model = state.model
-            self._check_model(state.model)
             if on:
-                if state.has_alarm:
-                    raise _invalid("turn_on_in_alarm")
-                send = not state.is_on
-            else:
-                if state.is_igniting and state.flame == 0:
-                    raise _invalid("turn_off_during_ignition")
-                # With an alarm reported, off is sent: it is the safe way.
-                send = state.status_key != "off" or state.has_alarm
+                send = await read_for_on()
+                if target is not None:
+                    await self.client.set_register(*target)
+                    # The stove may have changed during the write: an alarm
+                    # or a start in between must still stop the on.
+                    send = send and await read_for_on()
                 if send:
-                    await self.client.set_power(False)
+                    await self.client.set_power(True)
+                return
+            state = await self._async_read_main()
+            if state.is_igniting and state.flame == 0:
+                raise _invalid("turn_off_during_ignition")
+            # With an alarm reported, off is sent: it is the safe way.
+            if state.status_key != "off" or state.has_alarm:
+                await self.client.set_power(False)
             if target is not None:
                 await self.client.set_register(*target)
-            if on and send:
-                await self.client.set_power(True)
 
         await self._async_command(command)
+
+    async def _async_read_main(self) -> StoveState:
+        """Read the stove under the lock: the poll can be half a minute old."""
+        state = StoveState.from_payloads(
+            [await self.client.get_registers(CATEGORY_MAIN)]
+        )
+        self._reported_model = state.model
+        self._check_model(state.model)
+        return state
 
     def _check_schedule_start(self) -> None:
         """Refuse what lets a program start a board not verified for it."""
