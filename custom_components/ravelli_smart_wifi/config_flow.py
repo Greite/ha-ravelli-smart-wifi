@@ -182,6 +182,8 @@ class RavelliConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(mac)
         # A known module with a new lease: the entry follows it.
         self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.ip})
+        # An entry created without a MAC address has no unique id to match.
+        self._async_abort_entries_match({CONF_HOST: discovery_info.ip})
         try:
             probe = await async_probe(self.hass, discovery_info.ip)
         except ProbeError as err:

@@ -83,6 +83,21 @@ async def test_discovery_of_a_known_module_updates_its_address(
     assert fake_module.count(PATH_STATUS) == 0
 
 
+async def test_discovery_of_a_module_set_up_without_a_mac_address(
+    hass: HomeAssistant, fake_module: FakeModule
+) -> None:
+    """An entry without a unique id is matched by its address, not offered again."""
+    MockConfigEntry(
+        domain=DOMAIN, data={CONF_HOST: HOST, CONF_MODEL: 7, CONF_MAC: None}
+    ).add_to_hass(hass)
+
+    result = await discover(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert fake_module.count(PATH_STATUS) == 0
+
+
 async def test_discovery_of_a_silent_device(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
