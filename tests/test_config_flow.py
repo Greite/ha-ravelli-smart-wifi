@@ -361,6 +361,18 @@ async def test_scan_ignores_other_devices(
     assert result["errors"] == {"base": "none_found"}
 
 
+async def test_failed_scan_logs_no_address(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The manual form still opens; the log names the error class only."""
+    with patch(NETWORKS, side_effect=OSError("no route to 192.0.2.77")):
+        result = await scan(hass)
+
+    assert result["step_id"] == "manual"
+    assert "OSError" in caplog.text
+    assert "192.0.2.77" not in caplog.text
+
+
 async def test_local_networks_are_bounded(hass: HomeAssistant) -> None:
     """Disabled adapters, large networks and link-local addresses are skipped."""
     adapters = [

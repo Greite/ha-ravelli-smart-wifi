@@ -268,9 +268,10 @@ class RavelliConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         try:
             found = self._scan_task.result()
-        except Exception:
-            # A failed search must not block the manual entry.
-            _LOGGER.exception("The network search failed")
+        except Exception as err:
+            # A failed search must not block the manual entry. The class only:
+            # a message or a traceback can hold local addresses.
+            _LOGGER.warning("The network search failed: %s", type(err).__name__)
             found = []
         self._scan_task = None
         configured = {entry.data[CONF_HOST] for entry in self._async_current_entries()}
