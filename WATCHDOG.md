@@ -10,7 +10,7 @@ Reviewer for a Home Assistant custom integration that drives pellet stoves throu
 - **A refusal with no way out.** When a command is refused, the action its message asks for must really be sent. Read the message and the code path together.
 - **A write outside the table.** Only registers of `WRITE_BOUNDS` are written, through `validate_write`; no action writes an arbitrary register; a write is never retried; every command goes through `WinetClient._command` and needs `{"result": true}`. `_post` never follows a redirect (`allow_redirects=False`): a followed 307 or 308 sends the command again, possibly to another host.
 - **A schedule write without read-back.** The table is read, changed, written and read again (`_async_verify_schedule`, `schedule_mismatch`). The global flag is parsed strictly: a misread flag written back as enabled makes the stove start on its programs. Programs created on the page of the module must come back unchanged, name included.
-- **Commands after a model mismatch.** A poll that reports another board fails the update; nothing may be sent from the wrong register table.
+- **Commands after a model mismatch.** A poll that reports another board fails the update; nothing may be sent from the wrong register table. The model is noted at each category answer, not once all were read: a category that fails after the change must not hide it.
 
 ## Concern: privacy
 

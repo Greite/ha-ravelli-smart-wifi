@@ -131,19 +131,25 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
     async def _async_update_data(self) -> RavelliData:
         try:
             async with self._lock:
-                payloads = [
-                    await self.client.get_registers(category)
-                    for category in self.model.categories
-                ]
+                payloads = []
+                for category in self.model.categories:
+                    payload = await self.client.get_registers(category)
+                    # Noted at each answer: a later category that fails
+                    # must not hide a board change from the commands.
+                    model = payload.get("model")
+                    if model is not None:
+                        self._reported_model = model
+                        if model != self.model.code:
+                            # Nothing may be read or written with the wrong
+                            # table.
+                            raise UpdateFailed(
+                                f"The module reports stove model {model}, but "
+                                f"this entry was set up for model "
+                                f"{self.model.code} ({self.model.name}). "
+                                "Reconfigure the entry"
+                            )
+                    payloads.append(payload)
                 state = StoveState.from_payloads(payloads)
-                self._reported_model = state.model
-                if state.model != self.model.code:
-                    # Nothing may be read or written with the wrong table.
-                    raise UpdateFailed(
-                        f"The module reports stove model {state.model}, but this "
-                        f"entry was set up for model {self.model.code} "
-                        f"({self.model.name}). Reconfigure the entry"
-                    )
                 now = dt_util.utcnow()
                 if (
                     self._slow_read_at is None

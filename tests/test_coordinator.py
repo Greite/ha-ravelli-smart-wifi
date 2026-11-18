@@ -680,6 +680,26 @@ async def test_poll_with_another_model_fails_the_update(
     assert coordinator.last_update_success
 
 
+async def test_model_read_before_a_failed_category_stops_commands(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """Category 2 reports another board, category 6 then fails: still noted."""
+    fake_module.model = 11
+    fake_module.refused_categories = {6}
+
+    await coordinator.async_refresh()
+
+    assert not coordinator.last_update_success
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_schedule_enabled(False)
+    assert err.value.translation_key == "model_mismatch"
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_write_register(50, 23)
+    assert err.value.translation_key == "model_mismatch"
+    assert fake_module.count(PATH_GET, key="032") == 0
+    assert fake_module.count(PATH_SET) == 0
+
+
 async def test_turn_on_checks_the_model_read_at_command_time(
     coordinator: RavelliCoordinator, fake_module: FakeModule
 ) -> None:
