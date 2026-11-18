@@ -77,6 +77,8 @@ class FakeModule:
         self.programs: list[list[Any]] = capture["schedule"]["programs"]
         self.requests: list[tuple[str, dict[str, str]]] = []
         self.error: BaseException | None = None
+        # Raise the error on this path only; every path when None.
+        self.error_path: str | None = None
         self.http_status = 200
         self.raw_answers: dict[str, str] = {}
         self.write_result = True
@@ -112,7 +114,7 @@ class FakeModule:
         try:
             if self.delay:
                 await asyncio.sleep(self.delay)
-            if self.error is not None:
+            if self.error is not None and self.error_path in (None, url.path):
                 raise self.error
             if url.path in self.raw_answers:
                 return AiohttpClientMockResponse(

@@ -1,6 +1,7 @@
 """Tests for the coordinator."""
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import time, timedelta
 
@@ -166,11 +167,11 @@ async def test_write_register(
     """A write is followed by a read, so the new value shows at once."""
     await coordinator.async_write_register(50, 23)
 
-    assert fake_module.requests[0] == (
+    assert fake_module.requests[1] == (
         PATH_SET,
         {"key": "002", "memory": "1", "regId": "50", "value": "23", "result": "false"},
     )
-    assert categories_read(fake_module) == ["2", "6", "11"]
+    assert categories_read(fake_module) == ["2", "2", "6", "11"]
     assert coordinator.data.state.setpoint == 23
 
 
@@ -221,6 +222,7 @@ async def test_write_to_an_unreachable_module(
 ) -> None:
     """A network failure is reported and the write is not repeated."""
     fake_module.error = aiohttp.ClientConnectionError()
+    fake_module.error_path = PATH_SET
 
     with pytest.raises(HomeAssistantError) as err:
         await coordinator.async_write_register(50, 23)
@@ -610,12 +612,14 @@ async def test_failed_command_refreshes_at_the_normal_pace(
         fake_module.write_result = False
     else:
         fake_module.error = aiohttp.ClientConnectionError()
+        fake_module.error_path = PATH_SET
 
     with pytest.raises(HomeAssistantError) as err:
         await coordinator.async_write_register(50, 23)
 
     assert err.value.translation_key == key
-    assert fake_module.count(PATH_GET, key="020", category="2") == 1
+    # The read of the command, then one refresh.
+    assert fake_module.count(PATH_GET, key="020", category="2") == 2
     assert coordinator.update_interval == timedelta(seconds=30)
 
 
@@ -763,3 +767,30 @@ async def test_turn_on_checks_the_model_read_at_command_time(
 
     assert err.value.translation_key == "model_mismatch"
     assert fake_module.count(PATH_GET, key="022") == 0
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        lambda c: c.async_write_register(50, 23),
+        lambda c: c.async_set_schedule_enabled(False),
+        lambda c: c.async_set_program(1, MORNING),
+        lambda c: c.async_delete_program(1),
+        lambda c: c.async_sync_clock(),
+    ],
+)
+async def test_every_write_checks_the_model_read_at_command_time(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    command: Callable[[RavelliCoordinator], Awaitable[None]],
+) -> None:
+    """A board change since the last poll stops writes that read no register."""
+    fake_module.model = 11
+
+    with pytest.raises(HomeAssistantError) as err:
+        await command(coordinator)
+
+    assert err.value.translation_key == "model_mismatch"
+    assert fake_module.count(PATH_SET) == 0
+    assert fake_module.count(PATH_GET, key="032") == 0
+    assert fake_module.count(PATH_GET, key="034") == 0

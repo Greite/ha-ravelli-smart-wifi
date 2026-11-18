@@ -258,6 +258,8 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 state = StoveState.from_payloads([payload])
                 if not state.has_ducting_controls:
                     raise _invalid("ducting_setup_not_verified")
+            else:
+                await self._async_read_main()
             await self.client.set_register(register, value)
 
         await self._async_command(command)
@@ -315,7 +317,10 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         await self._async_command(command)
 
     async def _async_read_main(self) -> StoveState:
-        """Read the stove under the lock: the poll can be half a minute old."""
+        """Read the stove under the lock: the poll can be half a minute old.
+
+        Every write reads it first: the board may have changed since.
+        """
         payload = await self.client.get_registers(CATEGORY_MAIN)
         # The model first: another board may not hold this board's registers.
         self._check_model(read_model(payload))
@@ -354,6 +359,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         _check_slot(slot)
 
         async def command() -> None:
+            await self._async_read_main()
             current = await self._async_read_schedule()
             if current.programs[slot - 1] is None:
                 self._schedule = current
@@ -369,6 +375,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         """Read the table, change it, write it and read it back."""
 
         async def command() -> None:
+            await self._async_read_main()
             current = await self._async_read_schedule()
             wanted = change(current)
             await self.client.set_schedule(wanted.to_fields())
@@ -386,6 +393,7 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         """Set the stove clock to the local time of Home Assistant."""
 
         async def command() -> None:
+            await self._async_read_main()
             # Read once the lock is held: a diagnostics download can delay it.
             for register, value in encode_clock(dt_util.now()):
                 validate_write(self.model, register, value)
