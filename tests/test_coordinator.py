@@ -794,3 +794,37 @@ async def test_every_write_checks_the_model_read_at_command_time(
     assert fake_module.count(PATH_SET) == 0
     assert fake_module.count(PATH_GET, key="032") == 0
     assert fake_module.count(PATH_GET, key="034") == 0
+
+
+@pytest.mark.parametrize(
+    ("command", "key"),
+    [
+        (lambda c: c.async_set_schedule_enabled(False), "032"),
+        (lambda c: c.async_delete_program(1), "034"),
+    ],
+)
+async def test_a_program_can_be_stopped_without_the_status_register(
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    command: Callable[[RavelliCoordinator], Awaitable[None]],
+    key: str,
+) -> None:
+    """The model check before a write needs the model, not the status."""
+    del fake_module.common[2]
+
+    await command(coordinator)
+
+    assert fake_module.count(PATH_GET, key=key) == 1
+
+
+async def test_a_write_without_a_model_is_refused(
+    coordinator: RavelliCoordinator, fake_module: FakeModule
+) -> None:
+    """No model in the answer: the board is not proven, nothing is written."""
+    fake_module.model = None
+
+    with pytest.raises(HomeAssistantError) as err:
+        await coordinator.async_set_schedule_enabled(False)
+
+    assert err.value.translation_key == "command_refused"
+    assert fake_module.count(PATH_GET, key="032") == 0
