@@ -137,19 +137,19 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                     # Noted at each answer: a later category that fails
                     # must not hide a board change from the commands.
                     model = payload.get("model")
-                    if model is not None:
+                    if model is not None and model != self.model.code:
                         self._reported_model = model
-                        if model != self.model.code:
-                            # Nothing may be read or written with the wrong
-                            # table.
-                            raise UpdateFailed(
-                                f"The module reports stove model {model}, but "
-                                f"this entry was set up for model "
-                                f"{self.model.code} ({self.model.name}). "
-                                "Reconfigure the entry"
-                            )
+                        # Nothing may be read or written with the wrong table.
+                        raise UpdateFailed(
+                            f"The module reports stove model {model}, but "
+                            f"this entry was set up for model "
+                            f"{self.model.code} ({self.model.name}). "
+                            "Reconfigure the entry"
+                        )
                     payloads.append(payload)
                 state = StoveState.from_payloads(payloads)
+                # Only a whole poll of the right model clears a mismatch.
+                self._reported_model = state.model
                 now = dt_util.utcnow()
                 if (
                     self._slow_read_at is None
@@ -195,8 +195,12 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
             raise _failed("schedule_unreadable") from err
 
     def _check_model(self, code: int | None) -> None:
-        """Refuse a command while the module reports another model."""
+        """Refuse a command while the module reports another model.
+
+        A mismatch is kept until a whole poll reads the right model again.
+        """
         if code is not None and code != self.model.code:
+            self._reported_model = code
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="model_mismatch",
@@ -251,7 +255,6 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 state = StoveState.from_payloads(
                     [await self.client.get_registers(CATEGORY_DUCTING)]
                 )
-                self._reported_model = state.model
                 self._check_model(state.model)
                 if not state.has_ducting_controls:
                     raise _invalid("ducting_setup_not_verified")
@@ -316,7 +319,6 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
         state = StoveState.from_payloads(
             [await self.client.get_registers(CATEGORY_MAIN)]
         )
-        self._reported_model = state.model
         self._check_model(state.model)
         return state
 
