@@ -534,10 +534,11 @@ def _decode_time(enabled: int, hour: int, quarter: int) -> time | None:
     return time(hour, quarter * _QUARTER) if enabled == 1 else None
 
 
-def _encode_time(moment: time | None) -> int:
+def _encode_time(moment: time | None, kept: int) -> int:
     """Pack one start or stop time as enabled, hour and quarter."""
     if moment is None:
-        return 0
+        # The hour and quarter a disabled time was read with.
+        return kept
     return 1 << 7 | moment.hour << 2 | moment.minute // _QUARTER
 
 
@@ -552,6 +553,9 @@ class ScheduleProgram:
     temperature: int
     power: int
     weekdays: frozenset[str]
+    # Hour and quarter of a disabled start and stop, written back as read: a
+    # program made on the page of the module must come back unchanged.
+    disabled_times: tuple[int, int] = (0, 0)
 
     @classmethod
     def from_raw(cls, raw: Any) -> ScheduleProgram | None:
@@ -601,6 +605,10 @@ class ScheduleProgram:
             weekdays=frozenset(
                 day for bit, day in enumerate(WEEKDAYS) if days >> bit & 1
             ),
+            disabled_times=(
+                0 if start_enabled == 1 else start_hour << 2 | start_quarter,
+                0 if stop_enabled == 1 else stop_hour << 2 | stop_quarter,
+            ),
         )
 
     def validate(self) -> None:
@@ -632,8 +640,8 @@ class ScheduleProgram:
         days = sum(1 << bit for bit, day in enumerate(WEEKDAYS) if day in self.weekdays)
         return {
             f"{prefix}1": int(self.enabled),
-            f"{prefix}2": _encode_time(self.start),
-            f"{prefix}3": _encode_time(self.end),
+            f"{prefix}2": _encode_time(self.start, self.disabled_times[0]),
+            f"{prefix}3": _encode_time(self.end, self.disabled_times[1]),
             f"{prefix}4": self.temperature,
             f"{prefix}5": self.power,
             f"{prefix}6": days,

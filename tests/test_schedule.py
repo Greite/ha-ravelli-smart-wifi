@@ -152,6 +152,15 @@ def test_disabled_time_is_encoded_as_zero() -> None:
     assert replace(EVENING, start=None).to_fields(1)["p012"] == 0
 
 
+def test_disabled_time_is_written_back_as_read() -> None:
+    """A row made on the page of the module comes back unchanged."""
+    program = ScheduleProgram.from_raw([1, 1, 6, 2, 0, 8, 1, 21, 3, 31, "Week"])
+
+    assert program is not None
+    assert program.end is None
+    assert program.to_fields(1)["p013"] == 8 << 2 | 1
+
+
 def test_schedule_round_trip() -> None:
     """What is read can be written back unchanged."""
     schedule = Schedule.from_payload(answer(EVENING_RAW))
