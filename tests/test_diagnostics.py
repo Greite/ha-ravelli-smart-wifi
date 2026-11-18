@@ -2,10 +2,12 @@
 
 import asyncio
 import json
+from typing import Any
 
 import aiohttp
 from homeassistant.components.diagnostics import REDACTED
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.ravelli_smart_wifi.diagnostics import (
@@ -227,3 +229,18 @@ async def test_malformed_schedule_rows_are_redacted_or_described(
     text = json.dumps(result, default=str)
     for secret in ("secret-a", "secret-b", "secret-c"):
         assert secret not in text, secret
+
+
+@pytest.mark.parametrize("programs", [None, 3, "secret-d"])
+async def test_schedule_without_a_list_of_programs_is_described(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_module: FakeModule,
+    programs: Any,
+) -> None:
+    """The download still works; only the type of the value comes out."""
+    fake_module.programs = programs
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    assert result["schedule"]["programs"] == type(programs).__name__

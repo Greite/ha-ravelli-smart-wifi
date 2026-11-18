@@ -68,7 +68,12 @@ def _redact_schedule(schedule: dict[str, Any] | str) -> dict[str, Any]:
     """Hide the program names, free text typed by the owner, and any non-number."""
     if isinstance(schedule, str):
         return {"error": schedule}
-    programs = [_redact_program(program) for program in schedule.get("programs", [])]
+    rows = schedule.get("programs", [])
+    programs = (
+        [_redact_program(program) for program in rows]
+        if isinstance(rows, list)
+        else type(rows).__name__
+    )
     return {**_keep(schedule, KEEP_SCHEDULE), "programs": programs}
 
 
