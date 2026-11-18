@@ -70,7 +70,7 @@ class FakeModule:
             # Read on a KTR-HYDRO stove, off: flame 1, and chrono 1
             # while key=033 said the schedule was disabled.
             self.extra.update({"flame": 1, "chrono": 1})
-        if model == 14:
+        if model in (11, 12, 14):
             # Whether this board reports a flame is unknown: assume it does.
             self.extra["flame"] = 0
         self.schedule_enabled: bool = capture["schedule"]["enabled"]

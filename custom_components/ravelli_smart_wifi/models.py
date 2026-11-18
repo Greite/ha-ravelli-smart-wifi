@@ -180,13 +180,14 @@ class StoveModel:
     writable: frozenset[int]
     status_keys: Mapping[int, str]
     alarm_codes: frozenset[int]
-    has_ducting: bool = False
-    has_water: bool = False
     # Codes that mean the stove is not on, per board: a key such as
     # final_cleaning names different codes on different boards. Every other
     # code, an unknown one included, counts as on: the safe side. Empty while
-    # no code of the board was read as off: nothing may start it.
-    off_codes: frozenset[int] = frozenset({0, 6})
+    # no code of the board was read as off: nothing may start it. No default:
+    # a new board must not inherit the codes of another.
+    off_codes: frozenset[int]
+    has_ducting: bool = False
+    has_water: bool = False
     # None while no register was read against the stove display.
     ambient_register: int | None = REG_AMBIENT_TEMP
     ambient_divisor: int = 2
@@ -237,6 +238,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         writable=_COMMON_WRITABLE | {REG_DUCT_RIGHT_SETPOINT, REG_DUCT_LEFT_SETPOINT},
         status_keys=STATUS_KEYS,
         alarm_codes=RDS_ALARM_CODES,
+        off_codes=frozenset({0, 6}),
         has_ducting=True,
     ),
     # Transcribed from the page of the module: same main and clock registers
@@ -271,6 +273,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         alarm_codes=frozenset(),
         has_water=True,
         off_codes=frozenset(),
+        flame_shows_fire=False,
         schedule_flag_verified=False,
     ),
     12: StoveModel(
@@ -281,6 +284,7 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         status_keys={},
         alarm_codes=frozenset(),
         off_codes=frozenset(),
+        flame_shows_fire=False,
         schedule_flag_verified=False,
     ),
     # Transcribed from the page of the module: the main, power and clock

@@ -47,10 +47,10 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 
 | Entity | What it does |
 |---|---|
-| Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode (not on KTR-HYDRO), manual mode as preset, and what the stove is doing |
+| Thermostat "Stove" | On and off, target temperature (5 to 40 °C), power level (1 to 5) as fan mode (not on KTR-HYDRO), manual mode as preset, and what the stove is doing (not on HYDRO-RDS, ECO-RDS and STILO, where it always shows on) |
 | Thermostats "Ducting right" and "Ducting left" | Target (7 to 41 °C) and temperature of each ducted outlet, and the preset "External thermostat". Disabled by default: enable them if your stove has ducting. AIR-RDS only |
 | Thermostat "Water" | Water target and temperature. HYDRO-RDS and KTR-HYDRO only |
-| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: off, waiting to start, ignition, flame present, working, final cleaning and eco stop; the codes 3 and 6 show as unknown. On KTR-HYDRO: off, waiting to start, ignition, working, final cleaning and eco stop; the codes 3, 4, 6 and 9 show as unknown. The raw code is an attribute |
+| Sensor "Status" | Off, ignition, waiting for the flame, flame present, working, final cleaning or eco stop. On KTR-AIR BLDC: off, waiting to start, ignition, flame present, working, final cleaning and eco stop; the codes 3 and 6 show as unknown. On KTR-HYDRO: off, waiting to start, ignition, working, final cleaning and eco stop; the codes 3, 4, 6 and 9 show as unknown. Always unknown on HYDRO-RDS, ECO-RDS and STILO. The raw code is an attribute |
 | Sensor "Alarm message" and binary sensor "Alarm" | The alarm text of the stove, or "code N" with the raw alarm code when the module sends no text, and whether an alarm is active |
 | Sensor "Ambient temperature" | In °C. On KTR-AIR BLDC and KTR-HYDRO, in whole degrees, and empty while the stove reports none; on KTR-AIR BLDC it can lag the remote control by several minutes. Always empty on STILO for now |
 | Sensor "Front fan" | The front fan setting, 0 to 5 or auto, with the raw value as attribute. KTR-AIR BLDC only. Which register holds it depends on how the installer set up the ducting of the stove: only one setup was read so far, and on the others the sensor stays empty |
@@ -58,7 +58,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Sensor "Extractor speed" | In revolutions per minute. The conversion was checked on AIR-RDS only |
 | Sensor "Water temperature" | In °C. HYDRO-RDS and KTR-HYDRO only |
 | Sensor "Wi-Fi signal" | In dBm, disabled by default |
-| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: both stoves reported a flame in every phase, eco stop and off included. It is disabled by default on both, and on STILO, when the device is first added |
+| Binary sensor "Flame" | Whether the flame is lit. Created only if your stove reports it. On KTR-AIR BLDC and KTR-HYDRO, it does not follow the visible flame: both stoves reported a flame in every phase, eco stop and off included. It is disabled by default on both, and on HYDRO-RDS, ECO-RDS and STILO, when the device is first added |
 | Binary sensor "Firmware update" | On when the module has an update to install |
 | Number "Power level" | The same power level as the fan mode of the thermostat. Not on KTR-HYDRO |
 | Numbers "Comfort climate delta" and "Comfort climate delay" | The comfort climate settings of the stove. Not on KTR-AIR BLDC, KTR-HYDRO and STILO |
@@ -146,7 +146,8 @@ data:
   turn the stove on. This is how the module works, with or without this
   integration. Keep it on a network you trust.
 - The integration refuses to turn the stove off while it is igniting and the
-  flame is not established, as the module's own page does.
+  flame is not established, as the module's own page does. On HYDRO-RDS,
+  ECO-RDS and STILO, no code was read as an ignition: off is always sent.
 - The integration refuses to turn the stove on while it reports an alarm.
   Acknowledge the alarm on the stove itself, or turn the stove off from Home
   Assistant, then turn it on.

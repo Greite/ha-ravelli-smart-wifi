@@ -138,7 +138,11 @@ def test_readme_describes_every_entity() -> None:
         assert f"| {board} | Written from the module's own web page, not tested" in (
             README
         )
-    assert "the thermostat always shows on, turning on" in README
+    for board in ("HYDRO-RDS", "ECO-RDS"):
+        row = next(
+            line for line in README.splitlines() if line.startswith(f"| {board} |")
+        )
+        assert "the thermostat always shows on, turning on" in row, board
     assert "Only the code 0 counts as off" in README
     assert 'Sensor "Front fan"' in README
     assert (

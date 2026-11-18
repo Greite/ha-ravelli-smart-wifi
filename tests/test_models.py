@@ -304,7 +304,7 @@ def test_supported_models() -> None:
 
 
 @pytest.mark.parametrize("model", [11, 12, 14])
-@pytest.mark.parametrize("code", [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 42])
+@pytest.mark.parametrize("code", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
 def test_unread_board_status_means_nothing(model: int, code: int) -> None:
     """No code was read on these boards: each is unknown, on and not igniting."""
     decoded = state({2: code}, model=model)

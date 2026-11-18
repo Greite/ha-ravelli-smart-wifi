@@ -451,11 +451,11 @@ async def test_stilo(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -
     assert module.categories[2][51] == 4
 
 
-@pytest.mark.parametrize("model", [6, 14])
+@pytest.mark.parametrize("model", [6, 11, 12, 14])
 async def test_unread_board_flame_is_disabled_by_default(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
-    """KTR-HYDRO reported a flame while off; nothing was read on STILO."""
+    """KTR-HYDRO reported a flame while off; nothing was read on the others."""
     await setup_model(hass, aioclient_mock, model)
 
     entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
@@ -470,7 +470,10 @@ async def test_unread_board_flame_is_disabled_by_default(
         (6, True, 0, "unknown"),
         (6, False, 0, "off"),
         (6, True, 1, "on"),
-        # Nothing read on a STILO stove: same caution.
+        # Nothing read on HYDRO-RDS, ECO-RDS or STILO: same caution.
+        (11, False, 1, "unknown"),
+        (11, True, 0, "unknown"),
+        (12, False, 1, "unknown"),
         (14, False, 1, "unknown"),
         # The RDS capture holds chrono 0 with the schedule on: not a signal.
         (7, True, 0, "on"),
@@ -511,38 +514,49 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
     assert bool(response[calendar]["events"]) is (expected != "off")
 
 
-@pytest.mark.parametrize("model", [11, 12, 14])
+UNREAD_THERMOSTATS = [(11, "stove"), (11, "water"), (12, "stove"), (14, "stove")]
+
+
+@pytest.mark.parametrize(("model", "key"), UNREAD_THERMOSTATS)
 @pytest.mark.parametrize("status", [0, 5, 42])
 async def test_unread_board_turn_on_is_refused(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int, status: int
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    model: int,
+    key: str,
+    status: int,
 ) -> None:
     """No code of HYDRO-RDS, ECO-RDS or STILO is trusted as off."""
     module = await setup_model(hass, aioclient_mock, model)
     module.common[2] = status
 
     with pytest.raises(ServiceValidationError) as err:
-        await call(hass, "stove", "turn_on")
+        await call(hass, key, "turn_on")
 
     assert err.value.translation_key == "turn_on_not_verified"
     assert module.count(PATH_GET, key="022") == 0
 
 
-@pytest.mark.parametrize("model", [11, 12, 14])
+@pytest.mark.parametrize(("model", "key"), UNREAD_THERMOSTATS)
+@pytest.mark.parametrize("alarm", [0, 255])
 @pytest.mark.parametrize("flame", [0, 1, 255])
 @pytest.mark.parametrize("status", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
 async def test_unread_board_turn_off_is_always_sent(
     hass: HomeAssistant,
     aioclient_mock: AiohttpClientMocker,
     model: int,
+    key: str,
     status: int,
     flame: int,
+    alarm: int,
 ) -> None:
     """Nobody saw which code is an ignition on these boards: off is never held."""
     module = await setup_model(hass, aioclient_mock, model)
     module.common[2] = status
+    module.common[3] = alarm
     module.extra["flame"] = flame
 
-    await call(hass, "stove", "turn_off")
+    await call(hass, key, "turn_off")
 
     assert module.count(PATH_GET, key="022", status="0") == 1
 

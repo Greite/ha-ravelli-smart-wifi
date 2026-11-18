@@ -134,10 +134,12 @@ identified either and are treated the same way.
 
 Ducting (category 6) applies to model 7 only, as in the vendor UI.
 
-### Status codes, RDS family
+### Status codes, AIR-RDS (model 7)
 
 Read on the display of the stove at each change of the code. The table of
-the vendor UI is wrong for the codes 1 to 4 on this board.
+the vendor UI is wrong for the codes 1 to 4 on this board. Status tables are
+per board: HYDRO-RDS (11), ECO-RDS (12) and STILO (14) have none, so every
+code is unknown there, counts as on and never as an ignition.
 
 | Code | Display of the stove | Key | Home Assistant `hvac_action` |
 |---|---|---|---|
@@ -153,9 +155,9 @@ the vendor UI is wrong for the codes 1 to 4 on this board.
 | 9 | seen once, 2026-10-10, with the alarm "01-Black-out" on the display and 255 in register 3; "alarm memory" in the vendor UI | none | none |
 
 Any code without a key gives the Home Assistant `unknown` state, with the raw
-code exposed as an attribute. The stove counts as on for every code except
-0, 6, 8 and 9, so an unknown code shows as heat and an off command is still
-sent.
+code exposed as an attribute. On model 7 the stove counts as on for every
+code except 0, 6, 8 and 9, so an unknown code shows as heat and an off
+command is still sent.
 
 ### Schedule
 
@@ -237,7 +239,7 @@ default" are created disabled in the entity registry.
 | sensor | Front fan | register 187 of category 6, when register 175 reads 3 | Model 8 only. Enum `0` to `5` and `auto`; empty in any other configuration, 2 included, where 188 is the rear left fan (the select below); attribute `raw_value`. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9 on model 7, or register 3 non-zero | Device class `problem`. |
-| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6, 8 and 14. |
+| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 6, 8, 11, 12 and 14. |
 | binary_sensor | Firmware update available | `fwUpdate` | Device class `update`, diagnostic. |
 | number | Power level | register 51 | 1 to 5. Deliberate duplicate of the climate fan mode, as in Agua IOT. Absent on model 6. |
 | number | Comfort climate delta | register 74 | 0 to 20 °C, config. Absent on models 6, 8 and 14. |
@@ -313,10 +315,13 @@ Safety rules:
   rules below never rely on a state that is up to 30 seconds old.
 - Turning off is refused while the stove is igniting and the module reports
   no flame (`flame == 0`), as the vendor UI does.
-- Turning on is refused while the status code is 8 or 9, or the alarm
-  register (3) is not 0. Turning off in those states is allowed and sent, a
-  stopped stove included. Whether it acknowledges the alarm is not verified.
-- Igniting means the status codes 1, 2 and 3.
+- Turning on is refused while the status code is one of the board's alarm
+  codes (8 or 9 on model 7), or the alarm register (3) is not 0. Turning off
+  in those states is allowed and sent, a stopped stove included. Whether it
+  acknowledges the alarm is not verified.
+- Igniting means the codes of the board's ignition keys: 1, 2 and 3 on model
+  7. Boards without a status table (11, 12, 14) have none, so off is never
+  held there, and turning on is refused since no code is trusted as off.
 - Writes are never retried automatically.
 - Schedule writes read the table, change it, write it, read it back and
   raise if the result differs.
@@ -474,6 +479,7 @@ Not verified:
 | KTR-HYDRO off trusted | Status keys 0 off, 1 waiting to start, 2 ignition, 5 working, 7 final cleaning, 8 eco stop; 3, 4, 6 and 9 have no key. Code 0 is off (`off_codes` of 0 only): turning on is sent from 0. Turning the schedule on and storing a program are refused while `schedule_flag_verified` is false, not only while no off code is known | Issue 2, one cycle read on the remote on 2026-11-03: 0 showed the power icon with the stove cold, eco stop has its own code (8), as on KTR-AIR BLDC. Owner's decision, with the same criteria as for KTR-AIR BLDC. The remote showed the schedule active while `key=033` said disabled: a program written from Home Assistant could not be checked against what the stove follows |
 | KTR-AIR BLDC rear left fan only | In configuration 2 one select remains, "Rear left fan" (key `ducting_fan` kept, so its entity id stays), writing 188 with the same bounds and the same check under the lock. 189 and 190 are no longer writable, the "Ducting direction" and "Ducting split" selects are removed and their registry entries deleted at setup | Issue 3: written from Home Assistant, 189 and 190 were stored by the module and shown by the vendor app, but moved no air; only the left duct blew. On the remote, rear right P2 with left 0 blew right with 188 at 0, then right 0 with left P2 blew left with 188 at 2: 188 is the left fan. No register of categories 0 to 12 changed with the right fan in those downloads, which may lag the remote: no register for it is identified, not shown absent |
 | HYDRO-RDS and ECO-RDS (models 11 and 12) without the AIR-RDS status table | Empty status table, alarm codes and `off_codes`, `schedule_flag_verified` false, as on STILO: every code is unknown, counts as on and never as an ignition, so off is sent whatever `flame` reads; turning on, turning the schedule on and storing a program are refused (`turn_on_not_verified`, `schedule_not_verified`); the alarm sensor follows register 3 only | Full-project review, 2026-11-18: both boards borrowed the AIR-RDS table read on another board's display, so Home Assistant showed off for 6, sent on, allowed the schedule, and refused off in 1 to 3 while `flame` read 0. Status tables are per board; nothing was read on these two |
+| Flame sensor and `off_codes` after the HYDRO-RDS and ECO-RDS change | Flame off by default on models 11 and 12, as on STILO; `off_codes` has no default, each board names its own | Separate review of that change, 2026-11-18: `flame` was never read on these boards, and the `{0, 6}` default is how they had inherited the AIR-RDS off codes |
 | Mode given with `set_temperature` | Sent after the target on the stove and water thermostats; off is sent even when the target write is refused. On a duct, off with a target writes `DUCT_OFF` only, and the target becomes the one the next turn on restores once off succeeded | Full-project review, 2026-11-18: the `hvac_mode` field of `climate.set_temperature` was dropped, so an off asked that way was never sent. A target written to a duct turns it on: writing it before off left the outlet on if off then failed |
 | Mode outside `heat` and `off` given with `set_temperature` | Refused before any write, with the `not_valid_hvac_mode` error of Home Assistant | Full-project review, 2026-11-18: core checks the mode against `hvac_modes` for `set_hvac_mode` only, so `cool` with a target wrote the target and turned a duct that was off on |
 | DHCP discovery of an entry without a MAC address | Aborts as `already_configured` when an entry has the same address, before probing the module | Full-project review, 2026-11-18: such an entry has no unique id, so the discovery card came back at each DHCP event |
