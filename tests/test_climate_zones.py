@@ -505,11 +505,124 @@ async def test_stilo(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -
     assert module.categories[2][51] == 4
 
 
-@pytest.mark.parametrize("model", [6, 11, 12, 14])
+@pytest.mark.usefixtures("enable_all_entities")
+async def test_air_touch(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Model 1: target, power and room temperature; code 0 is off."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    registry = er.async_get(hass)
+
+    for key in ("duct_right", "duct_left", "water"):
+        assert not exists(hass, key)
+    for key in ("comfort_delta", "comfort_delay"):
+        assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_{key}") is None
+    assert registry.async_get_entity_id("number", DOMAIN, f"{MAC}_power")
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{MAC}_front_fan") is None
+    assert module.count(PATH_GET, key="020", category="6") == 0
+    assert module.count(PATH_GET, key="020", category="11") == 0
+
+    stove = climate(hass, "stove")
+    assert stove.state == "off"
+    assert stove.attributes["current_temperature"] == 21
+    assert stove.attributes["fan_modes"] == ["1", "2", "3", "4", "5"]
+    ambient = entity_id_for(hass, "sensor", "ambient_temperature")
+    assert hass.states.get(ambient).state == "21.0"
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == "off"
+
+    await call(hass, "stove", "set_temperature", temperature=22)
+    await call(hass, "stove", "set_fan_mode", fan_mode="4")
+    assert module.count(PATH_SET, regId="50", value="22") == 1
+    assert module.count(PATH_SET, regId="51", value="4") == 1
+    assert module.categories[2][50] == 22
+    assert module.categories[2][51] == 4
+
+
+@pytest.mark.parametrize(
+    ("status", "key", "action"),
+    [
+        (1, "waiting_start", "preheating"),
+        (2, "ignition", "preheating"),
+        (3, "waiting_flame", "preheating"),
+        (4, "flame_present", "preheating"),
+        (5, "working", "heating"),
+        (7, "final_cleaning", "off"),
+    ],
+)
+async def test_air_touch_status_is_shown_and_stays_on(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    status: int,
+    key: str,
+    action: str,
+) -> None:
+    """Every code but 0 keeps the thermostat on, final cleaning included."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common[2] = status
+    await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == key
+    state = climate(hass, "stove")
+    assert state.state == "heat"
+    assert state.attributes["hvac_action"] == action
+
+
+@pytest.mark.parametrize(
+    ("status", "sent"), [(0, 1), (1, 0), (5, 0), (6, 0), (7, 0), (42, 0)]
+)
+async def test_air_touch_turns_on_from_code_0_only(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, sent: int
+) -> None:
+    """Final cleaning (7) and unknown codes, 6 included, count as on."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common[2] = status
+
+    await call(hass, "stove", "turn_on")
+
+    assert module.count(PATH_GET, key="022", status="1") == sent
+
+
+@pytest.mark.parametrize("status", [1, 2, 3, 4])
+async def test_air_touch_turn_off_without_flame_is_refused(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """Before the flame, like the page and the other boards, off waits."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common[2] = status
+    module.extra["flame"] = 0
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "stove", "turn_off")
+
+    assert err.value.translation_key == "turn_off_during_ignition"
+    assert module.count(PATH_GET, key="022") == 0
+
+    module.extra["flame"] = 1
+    await call(hass, "stove", "turn_off")
+    assert module.count(PATH_GET, key="022", status="0") == 1
+
+
+@pytest.mark.parametrize("status", [0, 5, 6, 7, 42])
+async def test_air_touch_turn_off_outside_ignition_is_sent(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """Off is sent in every other code, with or without a flame; not at 0."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common[2] = status
+    module.extra["flame"] = 0
+
+    await call(hass, "stove", "turn_off")
+
+    assert module.count(PATH_GET, key="022", status="0") == (0 if status == 0 else 1)
+
+
+@pytest.mark.parametrize("model", [1, 6, 11, 12, 14])
 async def test_unread_board_flame_is_disabled_by_default(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
-    """KTR-HYDRO reported a flame while off; nothing was read on the others."""
+    """KTR-HYDRO reported a flame while off, AIR-TOUCH long after the fire;
+    nothing was read on the others."""
     await setup_model(hass, aioclient_mock, model)
 
     entry = er.async_get(hass).async_get(entity_id_for(hass, "binary_sensor", "flame"))
@@ -524,11 +637,12 @@ async def test_unread_board_flame_is_disabled_by_default(
         (6, True, 0, "unknown"),
         (6, False, 0, "off"),
         (6, True, 1, "on"),
-        # Nothing read on HYDRO-RDS, ECO-RDS or STILO: same caution.
+        # Nothing read on HYDRO-RDS, ECO-RDS, STILO or AIR-TOUCH: same caution.
         (11, False, 1, "unknown"),
         (11, True, 0, "unknown"),
         (12, False, 1, "unknown"),
         (14, False, 1, "unknown"),
+        (1, False, 1, "unknown"),
         # The RDS capture holds chrono 0 with the schedule on: not a signal.
         (7, True, 0, "on"),
     ],
@@ -754,7 +868,7 @@ async def test_ktr_hydro_turn_off(
     assert module.count(PATH_GET, key="022", status="1") == 0
 
 
-@pytest.mark.parametrize("model", [6, 11, 12, 14])
+@pytest.mark.parametrize("model", [1, 6, 11, 12, 14])
 async def test_unread_board_schedule_cannot_start_the_stove(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:

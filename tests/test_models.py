@@ -281,8 +281,9 @@ def test_model_must_be_a_number() -> None:
 
 
 def test_supported_models() -> None:
-    """Six model codes, with the categories each one polls."""
-    assert sorted(SUPPORTED_MODELS) == [6, 7, 8, 11, 12, 14]
+    """Seven model codes, with the categories each one polls."""
+    assert sorted(SUPPORTED_MODELS) == [1, 6, 7, 8, 11, 12, 14]
+    assert SUPPORTED_MODELS[1].name == "AIR-TOUCH"
     assert SUPPORTED_MODELS[6].name == "KTR-HYDRO"
     assert SUPPORTED_MODELS[7].name == "AIR-RDS"
     assert SUPPORTED_MODELS[8].name == "KTR-AIR BLDC"
@@ -295,11 +296,12 @@ def test_supported_models() -> None:
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
     assert SUPPORTED_MODELS[14].categories == (2,)
+    assert SUPPORTED_MODELS[1].categories == (2,)
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water
     for code in (6, 11):
         assert SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
-    for code in (8, 12, 14):
+    for code in (1, 8, 12, 14):
         assert not SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
 
@@ -359,6 +361,36 @@ def test_ktr_hydro_status_table(
     assert decoded.in_alarm is False
 
 
+@pytest.mark.parametrize(
+    ("code", "key", "is_on", "is_igniting"),
+    [
+        (0, "off", False, False),
+        # "Waiting restart": started again before final cleaning had ended.
+        (1, "waiting_start", True, True),
+        (2, "ignition", True, True),
+        (3, "waiting_flame", True, True),
+        (4, "flame_present", True, True),
+        (5, "working", True, False),
+        # Seen every 30 minutes while working, never on the remote.
+        (6, "unknown", True, False),
+        (7, "final_cleaning", True, False),
+        (8, "unknown", True, False),
+        (9, "unknown", True, False),
+    ],
+)
+def test_air_touch_status_table(
+    code: int, key: str, is_on: bool, is_igniting: bool
+) -> None:
+    """Model 1 codes read on its remote over two cycles; only 0 is off."""
+    decoded = state({2: code}, model=1)
+
+    assert decoded.status_key == key
+    assert decoded.is_on is is_on
+    assert decoded.is_igniting is is_igniting
+    assert decoded.in_alarm is False
+    assert SUPPORTED_MODELS[1].off_verified is True
+
+
 def test_ktr_hydro_temperatures() -> None:
     """Room from register 6 in whole degrees, water from register 1 in halves."""
     decoded = state({2: 5, 0: 0, 1: 91, 6: 21}, model=6)
@@ -371,6 +403,12 @@ def test_ktr_hydro_temperatures() -> None:
 def test_stilo_has_no_ambient_temperature() -> None:
     """The page says register 0 in halves, as it does for KTR-AIR BLDC where it was wrong."""
     assert state({2: 5, 0: 43, 6: 21}, model=14).ambient_temperature is None
+
+
+def test_air_touch_ambient_temperature() -> None:
+    """Room from register 6 in whole degrees, as read against the remote."""
+    assert state({2: 0, 0: 0, 6: 18}, model=1).ambient_temperature == 18
+    assert state({2: 0, 0: 0, 6: 0}, model=1).ambient_temperature is None
 
 
 @pytest.mark.parametrize(
@@ -402,6 +440,11 @@ def test_stilo_has_no_ambient_temperature() -> None:
         (14, 51, 1),
         (14, 51, 5),
         (14, 64, 0x99),
+        (1, 50, 5),
+        (1, 50, 41),
+        (1, 51, 1),
+        (1, 51, 5),
+        (1, 64, 0x99),
     ],
 )
 def test_valid_writes_pass(model: int, register: int, value: int) -> None:
@@ -456,6 +499,12 @@ def test_out_of_range_writes_are_refused(
         (14, 74),
         (14, 184),
         (14, 187),
+        # No water circuit, comfort or ducting on the page for this board.
+        (1, 49),
+        (1, 73),
+        (1, 74),
+        (1, 184),
+        (1, 187),
         (7, 0),
         (7, 2),
         (7, 999),
