@@ -62,6 +62,10 @@ class FakeModule:
         if model == 14:
             # Both candidate ambient registers hold a value: neither may show.
             self.categories[2].update({0: 43, 6: 21})
+        if model == 1:
+            # Read on an AIR-TOUCH stove, off: register 0 at 0, the room
+            # temperature of the remote in register 6.
+            self.categories[2].update({0: 0, 6: 21})
         self.extra: dict[str, Any] = capture["extra"]
         if model == 8:
             # A KTR-AIR BLDC stove reported a flame in every phase.
@@ -72,6 +76,9 @@ class FakeModule:
             self.extra.update({"flame": 1, "chrono": 1})
         if model in (11, 12, 14):
             # Whether this board reports a flame is unknown: assume it does.
+            self.extra["flame"] = 0
+        if model == 1:
+            # Read on an AIR-TOUCH stove, off.
             self.extra["flame"] = 0
         self.schedule_enabled: bool = capture["schedule"]["enabled"]
         self.programs: list[list[Any]] = capture["schedule"]["programs"]

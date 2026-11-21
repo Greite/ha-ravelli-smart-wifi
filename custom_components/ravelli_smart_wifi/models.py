@@ -100,6 +100,22 @@ KTR_HYDRO_STATUS_KEYS: dict[int, str] = {
     7: "final_cleaning",
     8: "eco_stop",
 }
+# Codes of an AIR-TOUCH stove, read on its remote control over two cycles:
+# 1 "waiting restart" after a start during final cleaning, 2 "start", 3
+# "waiting for flame", 4 "flame present", 5 "working" and "modulation eco", 7
+# "final cleaning",
+# also after off during an ignition. 6 came every 30 minutes while working,
+# for 15 to 20 seconds with the extractor at full speed, and was never seen on
+# the remote: it has no key.
+AIR_TOUCH_STATUS_KEYS: dict[int, str] = {
+    0: "off",
+    1: "waiting_start",
+    2: "ignition",
+    3: "waiting_flame",
+    4: "flame_present",
+    5: "working",
+    7: "final_cleaning",
+}
 # The page of the module calls 8 and 9 alarms on the RDS boards. Code 9 was
 # seen once with an alarm on the display, 8 never: they are kept to refuse
 # turning on.
@@ -208,6 +224,25 @@ class StoveModel:
 
 
 SUPPORTED_MODELS: dict[int, StoveModel] = {
+    # Transcribed from the page of the module: category 2 only, the main,
+    # power and clock registers, no comfort settings. Register 6 holds the
+    # room temperature of the remote in whole degrees, register 0 stays at 0.
+    # Status codes read on the remote; only 0 is off.
+    1: StoveModel(
+        code=1,
+        name="AIR-TOUCH",
+        categories=(CATEGORY_MAIN,),
+        writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
+        status_keys=AIR_TOUCH_STATUS_KEYS,
+        alarm_codes=frozenset(),
+        off_codes=frozenset({0}),
+        ambient_register=REG_KTR_AMBIENT_TEMP,
+        ambient_divisor=1,
+        # flame followed the flue gas temperature crossing 50 degrees: 1 after
+        # the fire was seen, and still 1 13 minutes after the stove was off.
+        flame_shows_fire=False,
+        schedule_flag_verified=False,
+    ),
     # Transcribed from the page of the module: category 2 only, ambient in
     # register 6 (remote probe), water in half degrees, both read against the
     # remote. Register 51 is 0 MIN or 1 MAX, not a power level: it is not
