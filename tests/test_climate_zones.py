@@ -599,6 +599,23 @@ async def test_air_touch_alarm_value_9_refuses_turning_on(
     assert module.count(PATH_GET, key="022") == 0
 
 
+async def test_air_touch_alarm_gone_since_the_last_poll_lets_on_through(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The alarm sensor shows the 9 of the last poll; the read at the command
+    finds it gone and the stove at 0, so on is sent."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common.update({2: 0, 3: 9})
+    await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id_for(hass, "binary_sensor", "alarm")).state == "on"
+    module.common[3] = 0
+
+    await call(hass, "stove", "turn_on")
+
+    assert module.count(PATH_GET, key="022", status="1") == 1
+
+
 @pytest.mark.parametrize("status", [1, 2, 3, 4])
 async def test_air_touch_turn_off_without_flame_is_refused(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
