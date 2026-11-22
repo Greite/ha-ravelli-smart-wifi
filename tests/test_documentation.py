@@ -151,13 +151,18 @@ def test_readme_describes_every_entity() -> None:
         "does not report the alarm register at all: turn the stove on from the"
         " stove itself" in " ".join(README.split())
     )
-    # On refuses on the read made at the command, not on what the last poll
-    # showed: a transient alarm value can be on screen and gone, or the reverse.
+    # On needs register 3 read at zero at the command, not what the last poll
+    # showed: a transient alarm value can be on screen and gone, or the reverse,
+    # and a missing register refuses too.
     air_touch = next(
         line for line in README.splitlines() if line.startswith("| AIR-TOUCH |")
     )
-    assert "refused only if that read still reports an alarm" in air_touch
-    assert "refused while it shows" not in air_touch
+    assert (
+        "A fresh read must show alarm register 3 at zero before Home Assistant can"
+        " turn the stove on, regardless of the displayed sensor" in air_touch
+    )
+    for wrong in ("refused while it shows", "refused only if"):
+        assert wrong not in air_touch
     assert 'Sensor "Front fan"' in README
     assert (
         "only one setup was read so far, and on the others the sensor stays empty"
