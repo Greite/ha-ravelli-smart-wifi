@@ -290,13 +290,14 @@ def test_supported_models() -> None:
     assert SUPPORTED_MODELS[11].name == "HYDRO-RDS"
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
     assert SUPPORTED_MODELS[14].name == "STILO"
+    assert SUPPORTED_MODELS[1].categories == (2,)
     assert SUPPORTED_MODELS[6].categories == (2,)
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
     assert SUPPORTED_MODELS[8].categories == (2, 6)
     assert SUPPORTED_MODELS[11].categories == (2, 11)
     assert SUPPORTED_MODELS[12].categories == (2, 11)
     assert SUPPORTED_MODELS[14].categories == (2,)
-    assert SUPPORTED_MODELS[1].categories == (2,)
+    assert SUPPORTED_MODELS[1].off_verified
     assert SUPPORTED_MODELS[7].has_ducting and not SUPPORTED_MODELS[7].has_water
     for code in (6, 11):
         assert SUPPORTED_MODELS[code].has_water
@@ -388,7 +389,6 @@ def test_air_touch_status_table(
     assert decoded.is_on is is_on
     assert decoded.is_igniting is is_igniting
     assert decoded.in_alarm is False
-    assert SUPPORTED_MODELS[1].off_verified is True
 
 
 def test_ktr_hydro_temperatures() -> None:

@@ -546,6 +546,8 @@ async def test_air_touch(
         (3, "waiting_flame", "preheating"),
         (4, "flame_present", "preheating"),
         (5, "working", "heating"),
+        # Seen every 30 minutes while working, never on the remote.
+        (6, "unknown", None),
         (7, "final_cleaning", "off"),
     ],
 )
@@ -554,7 +556,7 @@ async def test_air_touch_status_is_shown_and_stays_on(
     aioclient_mock: AiohttpClientMocker,
     status: int,
     key: str,
-    action: str,
+    action: str | None,
 ) -> None:
     """Every code but 0 keeps the thermostat on, final cleaning included."""
     module = await setup_model(hass, aioclient_mock, 1)
@@ -565,7 +567,7 @@ async def test_air_touch_status_is_shown_and_stays_on(
     assert hass.states.get(entity_id_for(hass, "sensor", "status")).state == key
     state = climate(hass, "stove")
     assert state.state == "heat"
-    assert state.attributes["hvac_action"] == action
+    assert state.attributes.get("hvac_action") == action
 
 
 @pytest.mark.parametrize(
@@ -581,6 +583,20 @@ async def test_air_touch_turns_on_from_code_0_only(
     await call(hass, "stove", "turn_on")
 
     assert module.count(PATH_GET, key="022", status="1") == sent
+
+
+async def test_air_touch_alarm_value_9_refuses_turning_on(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Read with no alarm on the remote, 9 still counts: it could be a real one."""
+    module = await setup_model(hass, aioclient_mock, 1)
+    module.common.update({2: 0, 3: 9})
+
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, "stove", "turn_on")
+
+    assert err.value.translation_key == "turn_on_in_alarm"
+    assert module.count(PATH_GET, key="022") == 0
 
 
 @pytest.mark.parametrize("status", [1, 2, 3, 4])
@@ -607,7 +623,7 @@ async def test_air_touch_turn_off_without_flame_is_refused(
 async def test_air_touch_turn_off_outside_ignition_is_sent(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """Off is sent in every other code, with or without a flame; not at 0."""
+    """Off is sent in every other code, even without a flame; not at 0."""
     module = await setup_model(hass, aioclient_mock, 1)
     module.common[2] = status
     module.extra["flame"] = 0
@@ -637,7 +653,8 @@ async def test_unread_board_flame_is_disabled_by_default(
         (6, True, 0, "unknown"),
         (6, False, 0, "off"),
         (6, True, 1, "on"),
-        # Nothing read on HYDRO-RDS, ECO-RDS, STILO or AIR-TOUCH: same caution.
+        # Nothing read on HYDRO-RDS, ECO-RDS or STILO, and which flag
+        # AIR-TOUCH follows is not known: same caution.
         (11, False, 1, "unknown"),
         (11, True, 0, "unknown"),
         (12, False, 1, "unknown"),

@@ -103,10 +103,9 @@ KTR_HYDRO_STATUS_KEYS: dict[int, str] = {
 # Codes of an AIR-TOUCH stove, read on its remote control over two cycles:
 # 1 "waiting restart" after a start during final cleaning, 2 "start", 3
 # "waiting for flame", 4 "flame present", 5 "working" and "modulation eco", 7
-# "final cleaning",
-# also after off during an ignition. 6 came every 30 minutes while working,
-# for 15 to 20 seconds with the extractor at full speed, and was never seen on
-# the remote: it has no key.
+# "final cleaning", also after off during an ignition. 6 came every 30 minutes
+# while working, for 15 to 30 seconds with the extractor at full speed, and
+# was never seen on the remote: it has no key.
 AIR_TOUCH_STATUS_KEYS: dict[int, str] = {
     0: "off",
     1: "waiting_start",
@@ -238,8 +237,10 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         off_codes=frozenset({0}),
         ambient_register=REG_KTR_AMBIENT_TEMP,
         ambient_divisor=1,
-        # flame followed the flue gas temperature crossing 50 degrees: 1 after
-        # the fire was seen, and still 1 13 minutes after the stove was off.
+        # flame follows the flue gas temperature crossing 50 degrees: 1 about
+        # 25 seconds after code 4 in one cycle, during 3 in another, and 0 only
+        # 13 minutes after off. Off during 1 to 4 waits for it, so on a warm
+        # stove it can be sent before the fire.
         flame_shows_fire=False,
         schedule_flag_verified=False,
     ),

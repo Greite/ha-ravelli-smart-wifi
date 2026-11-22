@@ -30,13 +30,12 @@ Success criteria:
 
 The module reports a numeric board model. Support covers the RDS family,
 which shares one register layout in the vendor UI, and the AIR-TOUCH,
-KTR-AIR BLDC, KTR-HYDRO and STILO boards, which use the same main and clock
-registers
-(section 12).
+KTR-AIR BLDC, KTR-HYDRO and STILO boards, which use the same main and
+clock registers (section 12).
 
 | Model code | Vendor name | Status |
 |---|---|---|
-| 1 | AIR-TOUCH | Transcribed from the vendor UI; status, ambient temperature, target and power read on a stove over two cycles; code 0 is off |
+| 1 | AIR-TOUCH | Transcribed from the vendor UI; status over two cycles, ambient temperature, target and power read on a stove by a user; turning on checked from Home Assistant at the stove, on and off reported by the same user in daily use; only code 0 is off; turning the schedule on and storing a program refused |
 | 6 | KTR-HYDRO | Transcribed from the vendor UI; status, ambient and water temperatures checked over one cycle by a user; on and off, room and water targets and clock checked from Home Assistant by the same user; only code 0 is off; turning the schedule on and storing a program refused |
 | 7 | AIR-RDS | Verified on real hardware |
 | 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
@@ -237,7 +236,7 @@ default" are created disabled in the entity registry.
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text; `code N` with the raw code of register 3 when the text is empty and the code is not 0; `none` otherwise; attribute `raw_value`. |
 | sensor | Ambient temperature | register 0, or 6 on models 1, 6 and 8 | °C, measurement. Half degrees on register 0, whole degrees on register 6; 0 is no value. Always empty on model 14 until its register is read on a stove. |
 | sensor | Water temperature | register 1 | Models 6 and 11 only. °C, measurement; in half degrees on model 6; 0 is no value. |
-| sensor | Extractor speed | register 5 | rpm = raw × 10 + 250, measurement, enabled by default. The formula was checked on model 7 only. |
+| sensor | Extractor speed | register 5 | rpm = raw × 10 + 250, measurement, enabled by default. The formula was checked on models 1 and 7 only. |
 | sensor | Front fan | register 187 of category 6, when register 175 reads 3 | Model 8 only. Enum `0` to `5` and `auto`; empty in any other configuration, 2 included, where 188 is the rear left fan (the select below); attribute `raw_value`. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9 on model 7, or register 3 non-zero | Device class `problem`. |
@@ -431,10 +430,11 @@ Not verified:
   ambient temperature and in which unit, `flame`, which schedule flag the
   stove follows, the ducting registers 184 to 189, and every command.
 - On AIR-TOUCH: the code 6, seen every 30 minutes while the stove worked
-  but never on the remote; the value 9 of the alarm register, read for 5
-  seconds three times with no alarm on the remote, and the real alarm
-  values; which schedule flag the stove follows; on and off sent from Home
-  Assistant.
+  but never on the remote; the value 9 of the alarm register, read on a
+  single 5-second poll three times with no alarm on the remote, and the real
+  alarm values; which schedule flag the stove follows; turning off from Home
+  Assistant watched at the stove (reported by the owner in daily use only);
+  the clock sync.
 
 ## 11. Repository conventions
 
@@ -499,5 +499,4 @@ Not verified:
 | Model read at command time | Register writes, schedule writes, program deletion and the clock sync read category 2 under the lock before their first write and check the model only (`_async_check_board`): a missing, malformed or other model refuses, a missing status register does not. On and off keep their full read of category 2; register 188 keeps its read of category 6 | Separate review, 2026-11-18: these commands trusted the last poll, so a board change since then reached the other board. Decoding the whole state there would have refused turning the schedule off or deleting a program when register 2 is missing, leaving an unwanted program armed. One request more per command; the six clock writes stay non-atomic |
 | DHCP discovery of an entry without a MAC address | Aborts as `already_configured` when an entry has the same address, before probing the module | Full-project review, 2026-11-18: such an entry has no unique id, so the discovery card came back at each DHCP event |
 | Disabled start and stop times | Written back with the hour and quarter they were read with (`disabled_times`), instead of 0 | A program made on the page of the module must come back unchanged after a write from Home Assistant |
-| AIR-TOUCH (model 1) | Supported, transcribed from the vendor UI: category 2 only, target 50 and power 51 writable with the bounds of the other boards, clock 59 to 64, no comfort settings, no ducting, no water. Ambient temperature in register 6 in whole degrees, as on KTR-AIR BLDC and KTR-HYDRO; 0 is no value. Empty status table and `off_codes`, as on STILO: turning on, turning the schedule on and storing a program are refused, off is always sent. Flame sensor disabled by default and `schedule_flag_verified` false | Readings of a stove that was off, on 2026-11-04, compared with its remote control (row of that date in `docs/hardware-verification.md`). The page of the module shows register 0 as "Internal probe" and register 6 as "Handheld probe"; register 0 stayed at 0 while 6 followed the remote. Code 0 was read with the remote showing OFF, once: one reading is not a cycle, so no code is trusted as off yet |
-| AIR-TOUCH off trusted | Status keys 0 off, 1 waiting to start, 2 ignition, 3 waiting for the flame, 4 flame present, 5 working, also shown as modulation, 7 final cleaning; 6, 8 and 9 have no key. Code 0 is off (`off_codes` of 0 only): turning on is sent from 0. 1 to 4 count as igniting, so off waits for the flame there, as on KTR-AIR BLDC. The flame sensor stays disabled by default, and turning the schedule on and storing a program stay refused (`schedule_flag_verified` false). The alarm register is used as on the other boards | Two cycles read on the remote on 2026-11-04 (row of that date in `docs/hardware-verification.md`): 1 was "waiting restart", after a start during final cleaning; 7 "final cleaning" came after off, in working and in waiting for the flame. 6 came every 30 minutes while working, for 15 to 21 seconds with the extractor at full speed, and was not seen on the remote: it counts as on. `flame` turned 1 and 0 as register 30 crossed 50 °C, after the fire was seen and 13 minutes after off. The alarm register read 9 for one poll three times, with no alarm on the remote: leaving it out of the alarm could hide a real alarm, so it still refuses turning on |
+| AIR-TOUCH (model 1) | Supported, transcribed from the vendor UI: category 2 only, target 50 and power 51 writable with the bounds of the other boards, clock 59 to 64, no comfort settings, no ducting, no water. Ambient temperature in register 6 in whole degrees, as on KTR-AIR BLDC and KTR-HYDRO; 0 is no value. Status keys 0 off, 1 waiting to start, 2 ignition, 3 waiting for the flame, 4 flame present, 5 working, also shown as modulation, 7 final cleaning; 6, 8 and 9 have no key. Code 0 is off (`off_codes` of 0 only): turning on is sent from 0. 1 to 4 count as igniting, so off waits for `flame` there, as on KTR-AIR BLDC. The flame sensor is disabled by default, and turning the schedule on and storing a program are refused (`schedule_flag_verified` false). The alarm register is used as on the other boards | Readings from 2026-11-04 to 2026-11-21 (rows of those dates in `docs/hardware-verification.md`). With the stove off, register 0 stayed at 0 while register 6 followed the remote; the page of the module shows them as "Internal probe" and "Handheld probe". Two cycles read on the remote: 1 was "waiting restart", after a start during final cleaning; 7 "final cleaning" came after off, in working and in waiting for the flame. 6 came every 30 minutes while working, for 15 and 21 seconds with the extractor at full speed, and was not seen on the remote: it counts as on. `flame` follows the flue gas temperature: it turned 1 as register 30 crossed 50 °C, 25 seconds after 4 in one cycle and during 3 in the other, and 0 13 minutes after off; off during 1 to 4 waits for it, so on a warm stove it can be sent before the fire. The alarm register read 9 on a single 5-second poll three times, with no alarm on the remote: leaving it out of the alarm could hide a real alarm, so it still refuses turning on |
