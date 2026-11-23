@@ -243,6 +243,10 @@ Thanks to [@piewankell](https://github.com/piewankell) for the readings
 that made the KTR-HYDRO support possible
 ([#2](https://github.com/Greite/ha-ravelli-smart-wifi/issues/2)).
 
+Thanks to [@martijnelzinga](https://github.com/martijnelzinga) for the
+readings on a Ravelli Aria that made the AIR-TOUCH support possible
+([#6](https://github.com/Greite/ha-ravelli-smart-wifi/pull/6)).
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
