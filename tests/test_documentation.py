@@ -49,7 +49,9 @@ def test_readme_install_reaches_the_marketplace_and_hacs() -> None:
     assert "**Settings > Marketplace**" in README
     # HACS and the Marketplace refuse a release on an older Home Assistant.
     minimum = json.loads((ROOT / "hacs.json").read_text())["homeassistant"]
-    assert f"needs Home Assistant {minimum.removesuffix('.0')} or later" in README
+    # A beta pin names its release: 2026.12.0b2 reads 2026.12, 2026.12.3 stays.
+    release = minimum.partition("b")[0].removesuffix(".0")
+    assert f"needs Home Assistant {release} or later" in README
     # The hacs_repository link opens HACS before 2026.11 and the Marketplace after.
     assert (
         "redirect/hacs_repository/?owner=Greite&repository=ha-ravelli-smart-wifi"

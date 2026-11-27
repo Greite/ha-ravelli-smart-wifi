@@ -14,7 +14,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+    UpdateFailedUnreachable,
+)
 from homeassistant.util import dt as dt_util
 
 from .api import WinetClient, WinetConnectionError, WinetError, WinetResponseError
@@ -159,6 +163,9 @@ class RavelliCoordinator(DataUpdateCoordinator[RavelliData]):
                 ):
                     self._slow_read_at = now
                     await self._async_slow_read()
+        except WinetConnectionError as err:
+            # Logged once at info level: a stove switched off at the wall is no error.
+            raise UpdateFailedUnreachable(str(err)) from err
         except (WinetError, InvalidPayloadError) as err:
             raise UpdateFailed(str(err)) from err
         finally:
