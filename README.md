@@ -67,6 +67,7 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 | Calendar "Schedule" | Shows when the stove will run by itself. Like any calendar in Home Assistant, it is on only while a program runs: it does not tell whether the schedule is on, the switch does. While the switch shows unknown, the calendar shows every enabled program |
 | Button "Synchronize clock" | Sets the clock of the stove to the time of Home Assistant |
 
+<!-- ha-marketplace:exclude-start -->
 ## Installation
 
 ### With the Marketplace or HACS
@@ -84,6 +85,7 @@ download. The button below opens the same page in your Home Assistant.
 Copy the folder `custom_components/ravelli_smart_wifi` into the
 `custom_components` folder of your Home Assistant configuration, then restart
 Home Assistant.
+<!-- ha-marketplace:exclude-end -->
 
 ## Setup
 
