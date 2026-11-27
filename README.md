@@ -72,10 +72,11 @@ curl -X POST -H "Content-Type: application/json; charset=utf-8" \
 
 ### With the Marketplace or HACS
 
-The integration needs Home Assistant 2026.11 or later. Go to
+The integration needs Home Assistant 2026.12 or later. Go to
 **Settings > Marketplace**, search for **Ravelli Smart Wi-Fi** and download
-it: you can set it up right away. On older versions, HACS offers only the
-releases made for them, up to 2026.11.0; restart Home Assistant after the
+it: you can set it up right away. On older versions, only the releases made
+for them are offered: up to 2026.11.2 on Home Assistant 2026.11, and up to
+2026.11.0 in HACS before it, where you restart Home Assistant after the
 download. The button below opens the same page in your Home Assistant.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Greite&repository=ha-ravelli-smart-wifi&category=integration)

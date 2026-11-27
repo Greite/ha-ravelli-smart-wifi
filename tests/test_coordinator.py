@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import time, timedelta
+import logging
 
 import aiohttp
 from freezegun.api import FrozenDateTimeFactory
@@ -137,12 +138,19 @@ async def test_slow_data_is_read_every_ten_minutes(
 
 
 async def test_unreachable_module_fails_the_update(
-    coordinator: RavelliCoordinator, fake_module: FakeModule
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Entities follow last_update_success."""
+    """Entities follow last_update_success; a stove switched off at the wall is no error."""
     fake_module.error = aiohttp.ClientConnectionError()
     await coordinator.async_refresh()
     assert not coordinator.last_update_success
+    assert any(
+        r.levelno == logging.INFO and "is unavailable" in r.getMessage()
+        for r in caplog.records
+    )
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
 
     fake_module.error = None
     await coordinator.async_refresh()
@@ -151,7 +159,10 @@ async def test_unreachable_module_fails_the_update(
 
 @pytest.mark.parametrize("answer", ["<html>busy</html>", '{"params": [[0, 44]]}'])
 async def test_unexpected_answer_fails_the_update(
-    coordinator: RavelliCoordinator, fake_module: FakeModule, answer: str
+    coordinator: RavelliCoordinator,
+    fake_module: FakeModule,
+    answer: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """HTML, or registers without a status, must not raise out of the poll."""
     fake_module.raw_answers[PATH_GET] = answer
@@ -159,6 +170,8 @@ async def test_unexpected_answer_fails_the_update(
     await coordinator.async_refresh()
 
     assert not coordinator.last_update_success
+    # A module that answers wrongly is not merely offline: it stays an error.
+    assert any(r.levelno == logging.ERROR for r in caplog.records)
 
 
 async def test_write_register(
