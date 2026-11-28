@@ -30,12 +30,13 @@ Success criteria:
 
 The module reports a numeric board model. Support covers the RDS family,
 which shares one register layout in the vendor UI, and the AIR-TOUCH,
-KTR-AIR BLDC, KTR-HYDRO and STILO boards, which use the same main and
-clock registers (section 12).
+KTR-AIR, KTR-AIR BLDC, KTR-HYDRO and STILO boards, which use the same main
+and clock registers (section 12).
 
 | Model code | Vendor name | Status |
 |---|---|---|
 | 1 | AIR-TOUCH | Transcribed from the vendor UI; status over two cycles, ambient temperature, target and power read on a stove by a user; turning on checked from Home Assistant at the stove, on and off reported by the same user in daily use; only code 0 is off; turning the schedule on and storing a program refused |
+| 5 | KTR-AIR | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent; no ambient temperature |
 | 6 | KTR-HYDRO | Transcribed from the vendor UI; status, ambient and water temperatures checked over one cycle by a user; on and off, room and water targets and clock checked from Home Assistant by the same user; only code 0 is off; turning the schedule on and storing a program refused |
 | 7 | AIR-RDS | Verified on real hardware |
 | 8 | KTR-AIR BLDC | Transcribed from the vendor UI; status, on and off, ambient temperature and front fan checked on a stove by a user; only code 0 is off |
@@ -43,7 +44,7 @@ clock registers (section 12).
 | 12 | ECO-RDS | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent |
 | 14 | STILO | Transcribed from the vendor UI, untested; no code is trusted as off, so turning on is refused and turning off is always sent; no ambient temperature |
 
-Every other model code (2, 5, 9, 10, 15) is refused during
+Every other model code (2, 9, 10, 15) is refused during
 setup with a message that names the code and points to the issue tracker.
 
 ### In scope
@@ -139,8 +140,8 @@ Ducting (category 6) applies to model 7 only, as in the vendor UI.
 
 Read on the display of the stove at each change of the code. The table of
 the vendor UI is wrong for the codes 1 to 4 on this board. Status tables are
-per board: HYDRO-RDS (11), ECO-RDS (12) and STILO (14) have none, so every
-code is unknown there, counts as on and never as an ignition.
+per board: HYDRO-RDS (11), ECO-RDS (12), STILO (14) and KTR-AIR (5) have
+none, so every code is unknown there, counts as on and never as an ignition.
 
 | Code | Display of the stove | Key | Home Assistant `hvac_action` |
 |---|---|---|---|
@@ -229,23 +230,23 @@ default" are created disabled in the entity registry.
 
 | Platform | Entity | Source | Notes |
 |---|---|---|---|
-| climate | Stove | status, ambient register, registers 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level, absent on model 6. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. No current temperature on model 14. A mode given with `set_temperature` goes with the target in one command under the lock: the stove is read, a refused mode writes nothing, off is sent before the target and on after it, once the stove was read again after the target; a target the module refuses never starts the stove, and the off sent before it stays sent. A mode other than `heat` or `off`, or a target outside the bounds, refuses the whole action. |
+| climate | Stove | status, ambient register, registers 50, 51 | Modes `heat` and `off`. Target 5 to 40 °C, step 1. Fan modes `1` to `5` map to the power level, absent on model 6. Preset `manual` writes 41 to register 50; preset `none` restores the last numeric target, or 20 °C when none is known. No current temperature on models 5 and 14. A mode given with `set_temperature` goes with the target in one command under the lock: the stove is read, a refused mode writes nothing, off is sent before the target and on after it, once the stove was read again after the target; a target the module refuses never starts the stove, and the off sent before it stays sent. A mode other than `heat` or `off`, or a target outside the bounds, refuses the whole action. |
 | climate | Ducting right, ducting left | registers 184/24, 185/25 | Model 7 only. Off by default. Modes `heat` and `off` (raw 5). Preset `external_thermostat` (raw 6). Target 7 to 41 °C. A target turns the outlet on: with `heat` it is the one write sent; with `off` only off is written, and the target is kept in memory, until a reload, for the next turn on once off succeeded. |
 | climate | Water | registers 49, 1 | Models 6 and 11 only. Target 30 to 80 °C. Register 1 in half degrees on model 6. Modes as on the stove thermostat. |
-| sensor | Status | register 2 | Enum of the 8 keys of the status tables; `unknown` state for any other code, and for every code on models 11, 12 and 14; attribute `raw_value`. |
+| sensor | Status | register 2 | Enum of the 8 keys of the status tables; `unknown` state for any other code, and for every code on models 5, 11, 12 and 14; attribute `raw_value`. |
 | sensor | Alarm | register 3, `alr` | State is the module's alarm text; `code N` with the raw code of register 3 when the text is empty and the code is not 0; `none` otherwise; attribute `raw_value`. |
-| sensor | Ambient temperature | register 0, or 6 on models 1, 6 and 8 | °C, measurement. Half degrees on register 0, whole degrees on register 6; 0 is no value. Always empty on model 14 until its register is read on a stove. |
+| sensor | Ambient temperature | register 0, or 6 on models 1, 6 and 8 | °C, measurement. Half degrees on register 0, whole degrees on register 6; 0 is no value. Always empty on models 5 and 14 until their register is read on a stove. |
 | sensor | Water temperature | register 1 | Models 6 and 11 only. °C, measurement; in half degrees on model 6; 0 is no value. |
 | sensor | Extractor speed | register 5 | rpm = raw × 10 + 250, measurement, enabled by default. The formula was checked on models 1 and 7 only. |
 | sensor | Front fan | register 187 of category 6, when register 175 reads 3 | Model 8 only. Enum `0` to `5` and `auto`; empty in any other configuration, 2 included, where 188 is the rear left fan (the select below); attribute `raw_value`. |
 | sensor | Wi-Fi signal | `rssi` | dBm, diagnostic, off by default. |
 | binary_sensor | Alarm | status 8 or 9 on model 7, or register 3 non-zero | Device class `problem`. |
-| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 1, 6, 8, 11, 12 and 14. |
+| binary_sensor | Flame | `flame` | Created only when the module reports a value other than 255. Off by default on models 1, 5, 6, 8, 11, 12 and 14. |
 | binary_sensor | Firmware update available | `fwUpdate` | Device class `update`, diagnostic. |
 | number | Power level | register 51 | 1 to 5. Deliberate duplicate of the climate fan mode, as in Agua IOT. Absent on model 6. |
-| number | Comfort climate delta | register 74 | 0 to 20 °C, config. Absent on models 1, 6, 8 and 14. |
-| number | Comfort climate delay | register 73 | 0 to 9 min, config. Absent on models 1, 6, 8 and 14. |
-| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. On models 1, 6, 11, 12 and 14, `unknown` while `chrono` disagrees with the flag; the calendar then shows every enabled program. |
+| number | Comfort climate delta | register 74 | 0 to 20 °C, config. Absent on models 1, 5, 6, 8 and 14. |
+| number | Comfort climate delay | register 73 | 0 to 9 min, config. Absent on models 1, 5, 6, 8 and 14. |
+| switch | Schedule | schedule `enabled` | Config. Toggling rewrites the table with the flag changed. On models 1, 5, 6, 11, 12 and 14, `unknown` while `chrono` disagrees with the flag; the calendar then shows every enabled program. |
 | select | Rear left fan | register 188 | Model 8 only, created when register 175 reads 2 at setup and unavailable while it reads anything else. Options `0` to `5` and `auto`. A write reads category 6 again under the lock first. |
 | button | Synchronize clock | registers 59 to 64 | Config. Writes Home Assistant local time. |
 | calendar | Schedule | schedule programs | Read-only, section 8. |
@@ -322,7 +323,7 @@ Safety rules:
   alarm. Turning off in those states is allowed and sent, a stopped stove
   included. Whether it acknowledges the alarm is not verified.
 - Igniting means the codes of the board's ignition keys: 1, 2 and 3 on model
-  7. Boards without a status table (11, 12, 14) have none, so off is never
+  7. Boards without a status table (5, 11, 12, 14) have none, so off is never
   held there, and turning on is refused since no code is trusted as off.
 - Writes are never retried automatically, and no request follows a redirect:
   a 3xx answer is an error, since following it would send the command again,
@@ -429,6 +430,9 @@ Not verified:
 - On STILO: every status code and the off code, which register holds the
   ambient temperature and in which unit, `flame`, which schedule flag the
   stove follows, the ducting registers 184 to 189, and every command.
+- On KTR-AIR: every status code and the off code, which register holds the
+  ambient temperature and in which unit, `flame`, which schedule flag the
+  stove follows, the ducting registers 175 and 183 to 193, and every command.
 - On AIR-TOUCH: the code 6, seen every 30 minutes while the stove worked
   but never on the remote; the value 9 of the alarm register, read on a
   single 5-second poll three times with no alarm on the remote, and the real
@@ -500,3 +504,4 @@ Not verified:
 | DHCP discovery of an entry without a MAC address | Aborts as `already_configured` when an entry has the same address, before probing the module | Full-project review, 2026-11-18: such an entry has no unique id, so the discovery card came back at each DHCP event |
 | Disabled start and stop times | Written back with the hour and quarter they were read with (`disabled_times`), instead of 0 | A program made on the page of the module must come back unchanged after a write from Home Assistant |
 | AIR-TOUCH (model 1) | Supported, transcribed from the vendor UI: category 2 only, target 50 and power 51 writable with the bounds of the other boards, clock 59 to 64, no comfort settings, no ducting, no water. Ambient temperature in register 6 in whole degrees, as on KTR-AIR BLDC and KTR-HYDRO; 0 is no value. Status keys 0 off, 1 waiting to start, 2 ignition, 3 waiting for the flame, 4 flame present, 5 working, also shown as modulation, 7 final cleaning; 6, 8 and 9 have no key. Code 0 is off (`off_codes` of 0 only): turning on is sent from 0. 1 to 4 count as igniting, so off waits for `flame` there, as on KTR-AIR BLDC. The flame sensor is disabled by default, and turning the schedule on and storing a program are refused (`schedule_flag_verified` false). The alarm register is used as on the other boards | Readings from 2026-11-04 to 2026-11-21 (rows of those dates in `docs/hardware-verification.md`). With the stove off, register 0 stayed at 0 while register 6 followed the remote; the page of the module shows them as "Internal probe" and "Handheld probe". Two cycles read on the remote: 1 was "waiting restart", after a start during final cleaning; 7 "final cleaning" came after off, in working and in waiting for the flame. 6 came every 30 minutes while working, for 15 and 21 seconds with the extractor at full speed, and was not seen on the remote: it counts as on. `flame` follows the flue gas temperature: it turned 1 as register 30 crossed 50 °C, 25 seconds after 4 in one cycle and during 3 in the other, and 0 13 minutes after off; off during 1 to 4 waits for it, so on a warm stove it can be sent before the fire. The alarm register read 9 on a single 5-second poll three times, with no alarm on the remote: leaving it out of the alarm could hide a real alarm, so it still refuses turning on |
+| KTR-AIR (model 5) | Supported as STILO is: category 2 only, target 50 and power 51 writable with the bounds of the other boards, no comfort settings, no ducting entity, no water. Empty status table and `off_codes`, so turning on, turning the schedule on and storing a program are refused and off is always sent. No ambient temperature (`ambient_register` None). Flame sensor disabled by default and `schedule_flag_verified` false | Issue 9, with one dump of category 2 that does not say what the stove showed. The page of the module shows board 5 with the screen of KTR-AIR BLDC (`case 5:case 8:`), but status tables are per board. The page decodes register 3 as an alarm number on boards 1, 5 and 6 and as bits on 8; the alarm sensor shows the raw value and turning on needs it at 0 either way. The page gives ambient in register 0 in half degrees, wrong on KTR-AIR BLDC: a guessed room temperature could drive heating automations. `flame` read 1 in the dump, with no fire state stated |

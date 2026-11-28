@@ -281,9 +281,10 @@ def test_model_must_be_a_number() -> None:
 
 
 def test_supported_models() -> None:
-    """Seven model codes, with the categories each one polls."""
-    assert sorted(SUPPORTED_MODELS) == [1, 6, 7, 8, 11, 12, 14]
+    """Eight model codes, with the categories each one polls."""
+    assert sorted(SUPPORTED_MODELS) == [1, 5, 6, 7, 8, 11, 12, 14]
     assert SUPPORTED_MODELS[1].name == "AIR-TOUCH"
+    assert SUPPORTED_MODELS[5].name == "KTR-AIR"
     assert SUPPORTED_MODELS[6].name == "KTR-HYDRO"
     assert SUPPORTED_MODELS[7].name == "AIR-RDS"
     assert SUPPORTED_MODELS[8].name == "KTR-AIR BLDC"
@@ -291,6 +292,7 @@ def test_supported_models() -> None:
     assert SUPPORTED_MODELS[12].name == "ECO-RDS"
     assert SUPPORTED_MODELS[14].name == "STILO"
     assert SUPPORTED_MODELS[1].categories == (2,)
+    assert SUPPORTED_MODELS[5].categories == (2,)
     assert SUPPORTED_MODELS[6].categories == (2,)
     assert SUPPORTED_MODELS[7].categories == (2, 6, 11)
     assert SUPPORTED_MODELS[8].categories == (2, 6)
@@ -302,12 +304,12 @@ def test_supported_models() -> None:
     for code in (6, 11):
         assert SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
-    for code in (1, 8, 12, 14):
+    for code in (1, 5, 8, 12, 14):
         assert not SUPPORTED_MODELS[code].has_water
         assert not SUPPORTED_MODELS[code].has_ducting
 
 
-@pytest.mark.parametrize("model", [11, 12, 14])
+@pytest.mark.parametrize("model", [5, 11, 12, 14])
 @pytest.mark.parametrize("code", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 42])
 def test_unread_board_status_means_nothing(model: int, code: int) -> None:
     """No code was read on these boards: each is unknown, on and not igniting."""
@@ -400,9 +402,10 @@ def test_ktr_hydro_temperatures() -> None:
     assert state({2: 5, 1: 0}, model=6).water_temperature is None
 
 
-def test_stilo_has_no_ambient_temperature() -> None:
+@pytest.mark.parametrize("model", [5, 14])
+def test_unread_ktr_like_board_has_no_ambient_temperature(model: int) -> None:
     """The page says register 0 in halves, as it does for KTR-AIR BLDC where it was wrong."""
-    assert state({2: 5, 0: 43, 6: 21}, model=14).ambient_temperature is None
+    assert state({2: 5, 0: 43, 6: 21}, model=model).ambient_temperature is None
 
 
 def test_air_touch_ambient_temperature() -> None:
@@ -440,6 +443,11 @@ def test_air_touch_ambient_temperature() -> None:
         (14, 51, 1),
         (14, 51, 5),
         (14, 64, 0x99),
+        (5, 50, 5),
+        (5, 50, 41),
+        (5, 51, 1),
+        (5, 51, 5),
+        (5, 64, 0x99),
         (1, 50, 5),
         (1, 50, 41),
         (1, 51, 1),
@@ -499,6 +507,11 @@ def test_out_of_range_writes_are_refused(
         (14, 74),
         (14, 184),
         (14, 187),
+        (5, 49),
+        (5, 73),
+        (5, 74),
+        (5, 184),
+        (5, 187),
         # No water circuit, comfort or ducting on the page for this board.
         (1, 49),
         (1, 73),

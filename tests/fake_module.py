@@ -59,7 +59,7 @@ class FakeModule:
             # From the page of the module: ambient in register 6, water in
             # half degrees in register 1, power 0 MIN or 1 MAX.
             self.categories[2].update({0: 0, 1: 91, 6: 21, 49: 60, 51: 1})
-        if model == 14:
+        if model in (5, 14):
             # Both candidate ambient registers hold a value: neither may show.
             self.categories[2].update({0: 43, 6: 21})
         if model == 1:
@@ -74,7 +74,7 @@ class FakeModule:
             # Read on a KTR-HYDRO stove, off: flame 1, and chrono 1
             # while key=033 said the schedule was disabled.
             self.extra.update({"flame": 1, "chrono": 1})
-        if model in (11, 12, 14):
+        if model in (5, 11, 12, 14):
             # Whether this board reports a flame is unknown: assume it does.
             self.extra["flame"] = 0
         if model == 1:

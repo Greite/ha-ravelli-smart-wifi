@@ -478,9 +478,12 @@ async def test_ktr_hydro(
 
 
 @pytest.mark.usefixtures("enable_all_entities")
-async def test_stilo(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
-    """Model 14: target and power, no code with a meaning, no room temperature."""
-    module = await setup_model(hass, aioclient_mock, 14)
+@pytest.mark.parametrize("model", [5, 14])
+async def test_unread_ktr_like_board(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
+) -> None:
+    """KTR-AIR and STILO: target and power, no code with a meaning, no room temperature."""
+    module = await setup_model(hass, aioclient_mock, model)
     registry = er.async_get(hass)
 
     for key in ("duct_right", "duct_left", "water"):
@@ -650,7 +653,7 @@ async def test_air_touch_turn_off_outside_ignition_is_sent(
     assert module.count(PATH_GET, key="022", status="0") == (0 if status == 0 else 1)
 
 
-@pytest.mark.parametrize("model", [1, 6, 11, 12, 14])
+@pytest.mark.parametrize("model", [1, 5, 6, 11, 12, 14])
 async def test_unread_board_flame_is_disabled_by_default(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:
@@ -670,12 +673,13 @@ async def test_unread_board_flame_is_disabled_by_default(
         (6, True, 0, "unknown"),
         (6, False, 0, "off"),
         (6, True, 1, "on"),
-        # Nothing read on HYDRO-RDS, ECO-RDS or STILO, and which flag
-        # AIR-TOUCH follows is not known: same caution.
+        # Nothing read on HYDRO-RDS, ECO-RDS, STILO or KTR-AIR, and which
+        # flag AIR-TOUCH follows is not known: same caution.
         (11, False, 1, "unknown"),
         (11, True, 0, "unknown"),
         (12, False, 1, "unknown"),
         (14, False, 1, "unknown"),
+        (5, False, 1, "unknown"),
         (1, False, 1, "unknown"),
         # The RDS capture holds chrono 0 with the schedule on: not a signal.
         (7, True, 0, "on"),
@@ -716,7 +720,13 @@ async def test_ktr_hydro_schedule_switch_is_unknown_when_flags_disagree(
     assert bool(response[calendar]["events"]) is (expected != "off")
 
 
-UNREAD_THERMOSTATS = [(11, "stove"), (11, "water"), (12, "stove"), (14, "stove")]
+UNREAD_THERMOSTATS = [
+    (11, "stove"),
+    (11, "water"),
+    (12, "stove"),
+    (14, "stove"),
+    (5, "stove"),
+]
 
 
 @pytest.mark.parametrize(("model", "key"), UNREAD_THERMOSTATS)
@@ -728,7 +738,7 @@ async def test_unread_board_turn_on_is_refused(
     key: str,
     status: int,
 ) -> None:
-    """No code of HYDRO-RDS, ECO-RDS or STILO is trusted as off."""
+    """No code of HYDRO-RDS, ECO-RDS, STILO or KTR-AIR is trusted as off."""
     module = await setup_model(hass, aioclient_mock, model)
     module.common[2] = status
 
@@ -902,7 +912,7 @@ async def test_ktr_hydro_turn_off(
     assert module.count(PATH_GET, key="022", status="1") == 0
 
 
-@pytest.mark.parametrize("model", [1, 6, 11, 12, 14])
+@pytest.mark.parametrize("model", [1, 5, 6, 11, 12, 14])
 async def test_unread_board_schedule_cannot_start_the_stove(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, model: int
 ) -> None:

@@ -244,6 +244,27 @@ SUPPORTED_MODELS: dict[int, StoveModel] = {
         flame_shows_fire=False,
         schedule_flag_verified=False,
     ),
+    # Transcribed from the page of the module, which shows it with the
+    # screen of KTR-AIR BLDC: the main, power and clock registers, and the
+    # same ducting registers (175, 183 to 193), not read: category 2 only.
+    # Status tables are per board: the KTR-AIR BLDC one says nothing about
+    # this one. Each code is unknown, counts as on and never as an ignition,
+    # so off is always sent and turning on is refused. The page says ambient
+    # in register 0 in half degrees, as it does for KTR-AIR BLDC where
+    # register 6 held it: no ambient until read against a display.
+    5: StoveModel(
+        code=5,
+        name="KTR-AIR",
+        categories=(CATEGORY_MAIN,),
+        writable=_COMMON_WRITABLE - {REG_COMFORT_DELAY, REG_COMFORT_DELTA},
+        status_keys={},
+        alarm_codes=frozenset(),
+        off_codes=frozenset(),
+        ambient_register=None,
+        # One dump read flame 1 with what the stove showed not stated.
+        flame_shows_fire=False,
+        schedule_flag_verified=False,
+    ),
     # Transcribed from the page of the module: category 2 only, ambient in
     # register 6 (remote probe), water in half degrees, both read against the
     # remote. Register 51 is 0 MIN or 1 MAX, not a power level: it is not
