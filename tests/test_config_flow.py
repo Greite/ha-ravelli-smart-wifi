@@ -201,6 +201,34 @@ async def test_unsupported_model_aborts(
     }
 
 
+async def test_ktr_air_is_accepted(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, mock_mac: None
+) -> None:
+    """Issue 9: model 5 with the category 2 it posted, once refused at setup."""
+    module = FakeModule(model=5)
+    module.categories[2] = {
+        **dict.fromkeys((0, 2, 3, 5, 8, 37, 175), 0),
+        6: 15,
+        7: 91,
+        9: 2,
+        10: 212,
+        50: 22,
+        51: 2,
+    }
+    module.extra.update({"flame": 1, "chrono": 0})
+    module.install(aioclient_mock)
+    result = await start(hass, "manual")
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Ravelli KTR-AIR"
+    assert result["data"] == {CONF_HOST: HOST, CONF_MODEL: 5, CONF_MAC: MAC}
+
+
 async def test_known_module_at_a_new_address_updates_the_entry(
     hass: HomeAssistant, fake_module: FakeModule, mock_mac: None
 ) -> None:
